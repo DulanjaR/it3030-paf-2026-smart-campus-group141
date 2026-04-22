@@ -7,6 +7,8 @@ import './App.css';
 import ResourcesPage from './pages/ResourcesPage';
 import AddResourcePage from './pages/AddResourcePage';
 import EditResourcePage from './pages/EditResourcePage';
+import CataloguePage from './pages/CataloguePage';
+import ResourceDetailsPage from './pages/ResourceDetailsPage';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-client-id-here';
 
@@ -49,6 +51,8 @@ export default function App() {
               </Layout>
             }
           />
+          <Route path="/catalogue" element={<CataloguePage />} />
+          <Route path="/catalogue/:id" element={<ResourceDetailsPage />} />
         </Routes>
       </Router>
     </GoogleOAuthProvider>
