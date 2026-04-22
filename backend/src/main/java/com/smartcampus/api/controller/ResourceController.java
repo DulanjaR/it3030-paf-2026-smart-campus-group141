@@ -20,7 +20,7 @@ public class ResourceController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return resourceService.getAllAvailableResources(PageRequest.of(page, size));
+        return resourceService.getAllResources(PageRequest.of(page, size));
     }
 
     // GET resource by ID
