@@ -6,5 +6,6 @@ public enum ResourceType {
     AUDITORIUM,
     SPORTS_FACILITY,
     MEETING_ROOM,
-    EQUIPMENT
+    EQUIPMENT,
+    SEMINAR_HALL
 }

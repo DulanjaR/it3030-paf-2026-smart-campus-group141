@@ -10,10 +10,10 @@ spring:
         format_sql: true
     show-sql: false
   datasource:
-    url: jdbc:postgresql://192.168.8.101:5432/smartcampus
+    url: jdbc:postgresql://ep-purple-truth-anxmcype.c-6.us-east-1.aws.neon.tech:5432/neondb?sslmode=require
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USER:smartcampus_user}
-    password: ${DB_PASSWORD:password123}
+    username: neondb_owner
+    password: npg_Fuo3PdzVJ1Ms
   security:
     oauth2:
       client:
