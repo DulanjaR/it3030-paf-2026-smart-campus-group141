@@ -1,0 +1,14 @@
+spring:
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smartcampus
+    driver-class-name: org.postgresql.Driver
+    username: smartcampus_user
+    password: password123

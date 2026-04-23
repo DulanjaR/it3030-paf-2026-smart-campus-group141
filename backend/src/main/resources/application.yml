@@ -10,10 +10,10 @@ spring:
         format_sql: true
     show-sql: false
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/smartcampus
+    url: jdbc:postgresql://${DB_HOST:ep-purple-truth-anxmcype.c-6.us-east-1.aws.neon.tech}/${DB_NAME:neondb}?sslmode=require
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USER:smartcampus_user}
-    password: ${DB_PASSWORD:password123}
+    username: ${DB_USER:neondb_owner}
+    password: ${DB_PASSWORD:npg_Fuo3PdzVJ1Ms}
   security:
     oauth2:
       client:
@@ -21,7 +21,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID:your-client-id}
             client-secret: ${GOOGLE_CLIENT_SECRET:your-client-secret}
-            redirect-uri: http://localhost:8080/login/oauth2/code/google
+            redirect-uri: http://localhost:8081/api/login/oauth2/code/google
             scope: openid,profile,email
         provider:
           google:
@@ -35,7 +35,7 @@ spring:
       allow-credentials: true
 
 server:
-  port: 8080
+  port: 8081
   servlet:
     context-path: /api
 
