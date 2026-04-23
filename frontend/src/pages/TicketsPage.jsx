@@ -14,7 +14,7 @@ const TicketsPage = () => {
   // Fetch tickets
   useEffect(() => {
     fetchTickets();
-  }, [filter, page]);
+  }, [filter, page, user?.id]);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -22,6 +22,10 @@ const TicketsPage = () => {
       let url = `http://localhost:8081/api/tickets?page=${page}&size=10`;
       
       if (filter === 'my') {
+        if (!user?.id) {
+          setTickets([]);
+          return;
+        }
         url = `http://localhost:8081/api/tickets/my-tickets?userId=${user?.id}&page=${page}&size=10`;
       } else if (filter === 'open') {
         url = `http://localhost:8081/api/tickets/filter/status?status=OPEN&page=${page}&size=10`;
@@ -194,6 +198,11 @@ const CreateTicketModal = ({ onClose, onSuccess, userId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!userId) {
+      alert('User session missing. Please log out and log in again.');
+      return;
+    }
+
     try {
       const response = await fetch(`http://localhost:8081/api/tickets?userId=${userId}`, {
         method: 'POST',
@@ -201,9 +210,13 @@ const CreateTicketModal = ({ onClose, onSuccess, userId }) => {
         body: JSON.stringify(formData),
       });
 
+      const payload = await response.json().catch(() => ({}));
+
       if (response.ok) {
         alert('Ticket created successfully!');
         onSuccess();
+      } else {
+        alert(payload?.error || 'Failed to create ticket');
       }
     } catch (error) {
       alert('Failed to create ticket');

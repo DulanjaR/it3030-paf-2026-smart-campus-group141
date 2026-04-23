@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Set;
 
 @Entity
@@ -46,6 +47,15 @@ public class Resource {
     private Boolean available = true;
     
     private String imageUrl;
+    
+    @Column(columnDefinition = "TEXT")
+    private String availableDays; // e.g., MONDAY-SATURDAY
+    
+    @Column(columnDefinition = "TIME")
+    private LocalTime availableFrom; // e.g., 08:00
+    
+    @Column(columnDefinition = "TIME")
+    private LocalTime availableTo; // e.g., 18:00
     
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
