@@ -47,6 +47,7 @@ export default function ResourcesPage() {
 
   return (
     <div className="space-y-6">
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -56,12 +57,23 @@ export default function ResourcesPage() {
           </p>
         </div>
 
-        <Link
-          to="/resources/add"
-          className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow hover:bg-blue-700 transition"
-        >
-          + Add Resource
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* Catalogue Button */}
+          <Link
+            to="/catalogue"
+            className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition"
+          >
+            View Catalogue
+          </Link>
+
+          {/* Add Resource Button */}
+          <Link
+            to="/resources/add"
+            className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow hover:bg-blue-700 transition"
+          >
+            + Add Resource
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -76,7 +88,7 @@ export default function ResourcesPage() {
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, description, or location..."
+              placeholder="Search by name or location"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
@@ -95,6 +107,7 @@ export default function ResourcesPage() {
             <option value="EQUIPMENT">Equipment</option>
             <option value="AUDITORIUM">Auditorium</option>
             <option value="SPORTS_FACILITY">Sports Facility</option>
+            <option value="SEMINAR_HALL">Seminar Hall</option>
           </select>
 
           <input
@@ -194,6 +207,7 @@ export default function ResourcesPage() {
                   </tr>
                 ))}
               </tbody>
+
             </table>
           </div>
         )}
