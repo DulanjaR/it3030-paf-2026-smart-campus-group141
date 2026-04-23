@@ -9,4 +9,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
     Page<Attachment> findByTicketId(Long ticketId, Pageable pageable);
+    long countByTicketId(Long ticketId);
 }
