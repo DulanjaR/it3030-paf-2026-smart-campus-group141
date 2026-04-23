@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { Menu, LogOut } from 'lucide-react';
 import { useState } from 'react';
@@ -43,13 +43,17 @@ export default function Layout({ children }) {
 
         <nav className="mt-8">
           {menuItems.map((item) => (
-            <a
+            <NavLink
               key={item.href}
-              href={item.href}
-              className="block px-6 py-3 hover:bg-gray-800 transition-colors"
+              to={item.href}
+              className={({ isActive }) =>
+                `block px-6 py-3 transition-colors hover:bg-gray-800 ${
+                  isActive ? 'bg-gray-800' : ''
+                }`
+              }
             >
               {sidebarOpen && item.label}
-            </a>
+            </NavLink>
           ))}
         </nav>
       </aside>

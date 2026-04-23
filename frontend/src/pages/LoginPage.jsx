@@ -1,32 +1,38 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../store/authStore';
+import { authService } from '../services/apiServices';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const login = useGoogleLogin({
-    onSuccess: async (codeResponse) => {
-      try {
-        // Send the token to your backend
-        const response = await fetch('http://localhost:8080/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token: codeResponse.access_token }),
-        });
+    onSuccess: async (tokenResponse) => {
+      setError('');
+      setIsLoading(true);
 
-        if (response.ok) {
-          const data = await response.json();
-          setToken(data.token);
-          setUser(data.user);
-          navigate('/dashboard');
+      try {
+        if (!tokenResponse.access_token) {
+          throw new Error('Google did not return an access token.');
         }
+
+        const data = await authService.login(tokenResponse.access_token);
+        setToken(data.token);
+        setUser(data.user);
+        navigate('/dashboard');
       } catch (error) {
         console.error('Login failed:', error);
+        setError(error.response?.data?.message || error.message || 'Login failed. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
+    },
+    onError: () => {
+      setError('Google sign-in was cancelled or failed. Please try again.');
     },
   });
 
@@ -42,10 +48,17 @@ export default function LoginPage() {
 
         <button
           onClick={() => login()}
-          className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700 transition-colors"
+          disabled={isLoading}
+          className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:bg-blue-400"
         >
-          Sign in with Google
+          {isLoading ? 'Signing in...' : 'Sign in with Google'}
         </button>
+
+        {error && (
+          <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </p>
+        )}
 
         <p className="mt-6 text-center text-sm text-gray-600">
           © 2026 Smart Campus. All rights reserved.

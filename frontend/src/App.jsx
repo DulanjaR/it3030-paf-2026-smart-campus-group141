@@ -3,8 +3,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import BookingsPage from './pages/BookingsPage';
 import { useAuthStore } from './store/authStore';
-import './App.css';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-client-id-here';
 
@@ -30,6 +30,16 @@ export default function App() {
               <ProtectedRoute>
                 <Layout>
                   <DashboardPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bookings"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <BookingsPage />
                 </Layout>
               </ProtectedRoute>
             }
