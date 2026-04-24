@@ -29,8 +29,10 @@ public class User {
     @Column(nullable = false)
     private String lastName;
     
-    @Column(unique = true, nullable = false)
+    @Column(unique = true)
     private String googleId;
+    
+    private String password; // For email/password registration
     
     private String profilePictureUrl;
     
