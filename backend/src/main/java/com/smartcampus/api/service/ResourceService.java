@@ -15,8 +15,8 @@ public class ResourceService {
     
     private final ResourceRepository resourceRepository;
     
-    public Page<Resource> getAllAvailableResources(Pageable pageable) {
-        return resourceRepository.findByAvailableTrue(pageable);
+    public Page<Resource> getAllResources(Pageable pageable) {
+        return resourceRepository.findAll(pageable);
     }
     
     public Resource getResourceById(Long id) {
