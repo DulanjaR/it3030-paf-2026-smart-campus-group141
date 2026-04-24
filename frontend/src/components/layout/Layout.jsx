@@ -38,6 +38,7 @@ export default function Layout({ children }) {
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard' },
     { label: 'Resources', href: '/resources' },
+    { label: 'Bookings', href: '/bookings' },
     { label: 'Tickets', href: '/tickets' },
     { label: 'Notifications', href: '/notifications' },
     ...(user?.role === 'ADMIN' ? [

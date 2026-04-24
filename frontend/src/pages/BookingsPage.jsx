@@ -1,28 +1,69 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Users, MapPin, Clock, Trash2, X } from 'lucide-react';
+import { Calendar, Users, MapPin, Clock, Trash2, X, Plus } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 import apiClient from '../services/apiClient';
 
 export default function BookingsPage() {
+  const { user } = useAuthStore();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [resources, setResources] = useState([]);
+  const [createForm, setCreateForm] = useState({
+    resourceId: '',
+    startTime: '',
+    endTime: '',
+    reason: '',
+  });
+  const [creating, setCreating] = useState(false);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     fetchBookings();
-  }, [page]);
+  }, [page, user?.id]);
+
+  useEffect(() => {
+    if (showCreateModal) {
+      fetchResources();
+    }
+  }, [showCreateModal]);
+
+  const fetchResources = async () => {
+    try {
+      const response = await apiClient.get('/resources', {
+        params: { page: 0, size: 100 },
+      });
+      setResources(response.data.content || []);
+    } catch (err) {
+      setResources([]);
+    }
+  };
 
   const fetchBookings = async () => {
     try {
+      if (!user?.id) {
+        setError('Unable to load bookings. Please log in again.');
+        setBookings([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      const response = await apiClient.get(`/bookings?page=${page}&size=10`);
+      const response = await apiClient.get('/bookings', {
+        params: {
+          userId: user.id,
+          page,
+          size: 10,
+        },
+      });
       setBookings(response.data.content || []);
       setTotalPages(response.data.totalPages || 1);
       setError('');
     } catch (err) {
-      setError('Failed to load bookings');
+      setError(err.response?.data?.error || 'Failed to load bookings');
       setBookings([]);
     } finally {
       setLoading(false);
@@ -37,7 +78,35 @@ export default function BookingsPage() {
       setBookings(bookings.filter(b => b.id !== bookingId));
       setSelectedBooking(null);
     } catch (err) {
-      setError('Failed to cancel booking');
+      setError(err.response?.data?.error || 'Failed to cancel booking');
+    }
+  };
+
+  const handleCreateBooking = async (e) => {
+    e.preventDefault();
+
+    if (!user?.id) {
+      setError('Unable to create booking. Please log in again.');
+      return;
+    }
+
+    try {
+      setCreating(true);
+      setError('');
+      await apiClient.post('/bookings', {
+        userId: user.id,
+        resourceId: Number(createForm.resourceId),
+        startTime: new Date(createForm.startTime).toISOString(),
+        endTime: new Date(createForm.endTime).toISOString(),
+        reason: createForm.reason,
+      });
+      setShowCreateModal(false);
+      setCreateForm({ resourceId: '', startTime: '', endTime: '', reason: '' });
+      await fetchBookings();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create booking');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -67,11 +136,22 @@ export default function BookingsPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <Calendar className="text-blue-600" size={32} />
-          My Bookings
-        </h1>
-        <p className="text-gray-600 mt-2">View and manage your resource bookings</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Calendar className="text-blue-600" size={32} />
+              My Bookings
+            </h1>
+            <p className="text-gray-600 mt-2">View and manage your resource bookings</p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={18} />
+            Create Booking
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -248,6 +328,98 @@ export default function BookingsPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Create Booking</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleCreateBooking}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Resource</label>
+                <select
+                  value={createForm.resourceId}
+                  onChange={(e) => setCreateForm({ ...createForm, resourceId: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select a resource</option>
+                  {resources.map((resource) => (
+                    <option key={resource.id} value={resource.id}>
+                      {resource.name || resource.title || `Resource ${resource.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                  <input
+                    type="datetime-local"
+                    value={createForm.startTime}
+                    onChange={(e) => setCreateForm({ ...createForm, startTime: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                  <input
+                    type="datetime-local"
+                    value={createForm.endTime}
+                    onChange={(e) => setCreateForm({ ...createForm, endTime: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                <textarea
+                  value={createForm.reason}
+                  onChange={(e) => setCreateForm({ ...createForm, reason: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Optional booking reason"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {creating ? 'Creating...' : 'Create Booking'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
