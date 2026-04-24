@@ -1,10 +1,13 @@
 package com.smartcampus.api.entity;
 
 public enum ResourceType {
-    CLASSROOM,
+    LECTURE_HALL,
     LAB,
     AUDITORIUM,
     SPORTS_FACILITY,
     PARKING,
-    EQUIPMENT
+    MEETING_ROOM,
+    EQUIPMENT,
+    SEMINAR_HALL
+
 }
