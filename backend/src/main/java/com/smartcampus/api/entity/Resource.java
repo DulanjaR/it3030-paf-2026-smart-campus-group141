@@ -49,13 +49,6 @@ public class Resource {
     private String imageUrl;
 
     @Column(columnDefinition = "TEXT")
-    private String availableDays; // e.g. MONDAY-SATURDAY
-
-    private LocalTime availableFrom; // e.g. 08:00
-
-    private LocalTime availableTo;   // e.g. 18:00
-    
-    @Column(columnDefinition = "TEXT")
     private String availableDays; // e.g., MONDAY-SATURDAY
     
     @Column(columnDefinition = "TIME")
