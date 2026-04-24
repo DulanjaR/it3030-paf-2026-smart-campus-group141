@@ -2,8 +2,11 @@ package com.smartcampus.api.service;
 
 import com.smartcampus.api.entity.User;
 import com.smartcampus.api.entity.UserRole;
+import com.smartcampus.api.exception.ApiException;
 import com.smartcampus.api.repository.UserRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +31,7 @@ public class UserService {
     
     public User findById(Long id) {
         return userRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
     }
     
     /**
@@ -36,19 +39,25 @@ public class UserService {
      */
     public User registerUser(String email, String firstName, String lastName, String password) {
         if (userRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email already registered");
+            throw new ApiException(HttpStatus.CONFLICT, "Email already registered");
         }
         
         User newUser = User.builder()
             .email(email)
             .firstName(firstName)
             .lastName(lastName)
+            .googleId("local:" + email.toLowerCase())
             .password(passwordEncoder.encode(password))
             .role(UserRole.STUDENT) // Default role
             .active(true)
             .build();
         
-        return userRepository.save(newUser);
+        try {
+            return userRepository.save(newUser);
+        } catch (DataIntegrityViolationException ex) {
+            // Covers race conditions where the same email is inserted concurrently.
+            throw new ApiException(HttpStatus.CONFLICT, "Email already registered");
+        }
     }
     
     /**
@@ -56,14 +65,14 @@ public class UserService {
      */
     public User loginUser(String email, String password) {
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
         
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
         
         if (!user.getActive()) {
-            throw new RuntimeException("User account is deactivated");
+            throw new ApiException(HttpStatus.FORBIDDEN, "User account is deactivated");
         }
         
         return user;
