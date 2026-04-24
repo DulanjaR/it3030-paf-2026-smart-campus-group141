@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
 import DashboardPage from './pages/DashboardPage';
 import TicketsPage from './pages/TicketsPage';
 import ResourcesPage from './pages/ResourcesPage';
@@ -9,6 +10,8 @@ import AddResourcePage from './pages/AddResourcePage';
 import EditResourcePage from './pages/EditResourcePage';
 import CataloguePage from './pages/CataloguePage';
 import ResourceDetailsPage from './pages/ResourceDetailsPage';
+import NotificationsPage from './pages/NotificationsPage';
+import RoleManagementPage from './pages/RoleManagementPage';
 import { useAuthStore } from './store/authStore';
 import './App.css';
 
@@ -34,6 +37,11 @@ function AppRoutes() {
         />
 
         <Route
+          path="/signup"
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignUpPage />}
+        />
+
+        <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
@@ -50,6 +58,17 @@ function AppRoutes() {
             <ProtectedRoute>
               <Layout>
                 <TicketsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <NotificationsPage />
               </Layout>
             </ProtectedRoute>
           }
@@ -83,6 +102,17 @@ function AppRoutes() {
             <ProtectedRoute>
               <Layout>
                 <EditResourcePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/roles"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <RoleManagementPage />
               </Layout>
             </ProtectedRoute>
           }
