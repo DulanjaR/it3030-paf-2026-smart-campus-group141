@@ -1,6 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const today = new Date().toISOString().split('T')[0];
+
+const createInitialForm = (resourceId = '', expectedAttendees = '') => ({
+  resourceId: resourceId ? String(resourceId) : '',
+  date: today,
+  startTime: '',
+  endTime: '',
+  purpose: '',
+  expectedAttendees: expectedAttendees ? String(expectedAttendees) : '',
+});
 
 export default function BookingFormModal({
   isOpen,
@@ -9,19 +18,31 @@ export default function BookingFormModal({
   onSubmit,
   serverError,
   isSubmitting,
+  initialResourceId = '',
+  initialResourceName = '',
+  initialExpectedAttendees = '',
+  showExpectedAttendees = false,
+  title = 'New Booking',
 }) {
-  const [form, setForm] = useState({
-    resourceId: '',
-    date: today,
-    startTime: '',
-    endTime: '',
-    purpose: '',
-  });
+  const [form, setForm] = useState(createInitialForm(initialResourceId, initialExpectedAttendees));
   const [validationError, setValidationError] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setForm(createInitialForm(initialResourceId, initialExpectedAttendees));
+    setValidationError('');
+  }, [initialExpectedAttendees, initialResourceId, isOpen]);
 
   if (!isOpen) {
     return null;
   }
+
+  const showFallbackResourceOption = initialResourceId
+    && initialResourceName
+    && !resources.some((resource) => String(resource.id) === String(initialResourceId));
 
   const updateField = (event) => {
     const { name, value } = event.target;
@@ -48,6 +69,7 @@ export default function BookingFormModal({
       startTime: form.startTime,
       endTime: form.endTime,
       purpose: form.purpose.trim(),
+      expectedAttendees: form.expectedAttendees ? Number(form.expectedAttendees) : undefined,
     });
   };
 
@@ -55,7 +77,7 @@ export default function BookingFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">New Booking</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
           <button onClick={onClose} className="rounded-md px-3 py-1 text-gray-500 hover:bg-gray-100">
             Close
           </button>
@@ -71,8 +93,13 @@ export default function BookingFormModal({
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
             >
               <option value="">Select a resource</option>
+              {showFallbackResourceOption && (
+                <option value={String(initialResourceId)}>
+                  {initialResourceName}
+                </option>
+              )}
               {resources.map((resource) => (
-                <option key={resource.id} value={resource.id}>
+                <option key={resource.id} value={String(resource.id)}>
                   {resource.name}
                 </option>
               ))}
@@ -125,6 +152,21 @@ export default function BookingFormModal({
               placeholder="Example: Group study session"
             />
           </div>
+
+          {showExpectedAttendees && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Expected Attendees</label>
+              <input
+                type="number"
+                name="expectedAttendees"
+                min="1"
+                value={form.expectedAttendees}
+                onChange={updateField}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                placeholder="Example: 30"
+              />
+            </div>
+          )}
 
           {(validationError || serverError) && (
             <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
