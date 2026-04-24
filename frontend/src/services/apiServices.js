@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+export { bookingService } from './bookingService';
 
 export const authService = {
   login: async (googleToken) => {
@@ -44,43 +45,6 @@ export const resourceService = {
 
   delete: async (id) => {
     return await apiClient.delete(`/resources/${id}`);
-  },
-};
-
-export const bookingService = {
-  getAll: async (filters = {}) => {
-    const response = await apiClient.get('/bookings', { params: filters });
-    return response.data;
-  },
-
-  getById: async (id) => {
-    const response = await apiClient.get(`/bookings/${id}`);
-    return response.data;
-  },
-
-  create: async (data) => {
-    const response = await apiClient.post('/bookings', data);
-    return response.data;
-  },
-
-  update: async (id, data) => {
-    const response = await apiClient.put(`/bookings/${id}`, data);
-    return response.data;
-  },
-
-  approve: async (id, reason) => {
-    const response = await apiClient.patch(`/bookings/${id}/approve`, { reason });
-    return response.data;
-  },
-
-  reject: async (id, reason) => {
-    const response = await apiClient.patch(`/bookings/${id}/reject`, { reason });
-    return response.data;
-  },
-
-  cancel: async (id, reason) => {
-    const response = await apiClient.patch(`/bookings/${id}/cancel`, { reason });
-    return response.data;
   },
 };
 
