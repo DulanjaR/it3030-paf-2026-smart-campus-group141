@@ -9,6 +9,24 @@ import { authService } from '../services/apiServices';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const USE_GOOGLE_AUTH = GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'your-google-client-id-here';
 
+function GoogleSignInButton({ onSuccess, onError, disabled }) {
+  const login = useGoogleLogin({
+    onSuccess,
+    onError,
+  });
+
+  return (
+    <button
+      type="button"
+      onClick={login}
+      disabled={disabled}
+      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-60"
+    >
+      {disabled ? 'Signing in with Google...' : 'Sign in with Google'}
+    </button>
+  );
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
@@ -41,8 +59,7 @@ export default function LoginPage() {
     }
   };
 
-  const login = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
+  const onGoogleSuccess = async (tokenResponse) => {
       setError('');
       setGoogleLoading(true);
 
@@ -64,11 +81,11 @@ export default function LoginPage() {
       } finally {
         setGoogleLoading(false);
       }
-    },
-    onError: () => {
-      setError('Google sign-in was cancelled or failed. Please try again.');
-    },
-  });
+    };
+
+  const onGoogleError = () => {
+    setError('Google sign-in was cancelled or failed. Please try again.');
+  };
 
   const handleMockLogin = () => {
     const mockUser = {
@@ -81,11 +98,6 @@ export default function LoginPage() {
     setToken('mock-token-' + Date.now());
     setUser(mockUser);
     navigate('/dashboard');
-  };
-
-  const handleGoogleLogin = () => {
-    setError('');
-    login();
   };
 
   return (
@@ -127,7 +139,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="********"
                   className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-10 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
                   required
                 />
@@ -163,14 +175,11 @@ export default function LoginPage() {
             </div>
 
             {USE_GOOGLE_AUTH ? (
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
+              <GoogleSignInButton
+                onSuccess={onGoogleSuccess}
+                onError={onGoogleError}
                 disabled={googleLoading}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-60"
-              >
-                {googleLoading ? 'Signing in with Google...' : 'Sign in with Google'}
-              </button>
+              />
             ) : (
               <button
                 type="button"
@@ -197,7 +206,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-gray-600">
-          © 2026 Smart Campus. All rights reserved.
+          (c) 2026 Smart Campus. All rights reserved.
         </p>
       </div>
     </div>
