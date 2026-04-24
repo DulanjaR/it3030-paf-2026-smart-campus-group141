@@ -9,7 +9,7 @@ const useAuthStore = create((set) => ({
   user: getStoredUser(),
   token: localStorage.getItem('authToken') || null,
   isAuthenticated: !!localStorage.getItem('authToken'),
-  
+
   setUser: (user) => {
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
@@ -18,7 +18,7 @@ const useAuthStore = create((set) => ({
     }
     set({ user });
   },
-  
+
   setToken: (token) => {
     if (token) {
       localStorage.setItem('authToken', token);
@@ -27,13 +27,13 @@ const useAuthStore = create((set) => ({
     }
     set({ token, isAuthenticated: !!token });
   },
-  
+
   logout: () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
     set({ user: null, token: null, isAuthenticated: false });
   },
-  
+
   loadFromStorage: () => {
     const token = localStorage.getItem('authToken');
     const user = localStorage.getItem('user');

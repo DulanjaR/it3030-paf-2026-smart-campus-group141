@@ -33,6 +33,16 @@ public class CurrentUserService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please sign in before using bookings.");
         }
 
+        if (token.startsWith("mock-token-")) {
+            return userService.createOrUpdateUser(
+                    "dev@smartcampus.local",
+                    "Dev",
+                    "User",
+                    "mock-dev-user",
+                    ""
+            );
+        }
+
         GoogleProfile profile = fetchGoogleProfile(token);
         return userService.createOrUpdateUser(
                 profile.email(),

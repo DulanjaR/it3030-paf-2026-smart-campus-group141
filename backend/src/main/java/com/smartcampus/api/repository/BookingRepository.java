@@ -14,6 +14,7 @@ import java.util.Optional;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+
     @Query("""
         select b from Booking b
         join fetch b.resource r

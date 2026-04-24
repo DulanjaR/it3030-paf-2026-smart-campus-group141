@@ -4,6 +4,9 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../store/authStore';
 import { authService } from '../services/apiServices';
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const USE_GOOGLE_AUTH = GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'your-google-client-id-here';
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
@@ -24,9 +27,13 @@ export default function LoginPage() {
         setToken(data.token);
         setUser(data.user);
         navigate('/dashboard');
-      } catch (error) {
-        console.error('Login failed:', error);
-        setError(error.response?.data?.message || error.message || 'Login failed. Please try again.');
+      } catch (requestError) {
+        console.error('Login failed:', requestError);
+        setError(
+          requestError.response?.data?.message
+            || requestError.message
+            || 'Login failed. Please try again.'
+        );
       } finally {
         setIsLoading(false);
       }
@@ -35,6 +42,25 @@ export default function LoginPage() {
       setError('Google sign-in was cancelled or failed. Please try again.');
     },
   });
+
+  const handleMockLogin = () => {
+    const mockUser = {
+      id: '1',
+      email: 'dev@smartcampus.local',
+      firstName: 'Dev',
+      lastName: 'User',
+      role: 'ADMIN',
+    };
+
+    setToken(`mock-token-${Date.now()}`);
+    setUser(mockUser);
+    navigate('/dashboard');
+  };
+
+  const handleGoogleLogin = () => {
+    setError('');
+    login();
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -46,13 +72,27 @@ export default function LoginPage() {
           Operations Hub
         </p>
 
-        <button
-          onClick={() => login()}
-          disabled={isLoading}
-          className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:bg-blue-400"
-        >
-          {isLoading ? 'Signing in...' : 'Sign in with Google'}
-        </button>
+        {USE_GOOGLE_AUTH ? (
+          <button
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+          >
+            {isLoading ? 'Signing in...' : 'Sign in with Google'}
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={handleMockLogin}
+              className="w-full rounded-lg bg-green-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-green-700"
+            >
+              Login (Development Mode)
+            </button>
+            <p className="mt-4 rounded bg-yellow-50 p-2 text-center text-xs text-yellow-600">
+              Google OAuth is not configured. Using mock authentication.
+            </p>
+          </>
+        )}
 
         {error && (
           <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">

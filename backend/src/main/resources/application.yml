@@ -1,29 +1,21 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: smartcampus-api
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: ${SPRING_JPA_DATABASE_PLATFORM:org.hibernate.dialect.PostgreSQLDialect}
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     properties:
       hibernate:
-        format_sql: true
-    show-sql: true
+        format_sql: ${SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL:true}
+    show-sql: ${SPRING_JPA_SHOW_SQL:true}
   datasource:
-<<<<<<< Updated upstream
-    url: jdbc:h2:mem:smartcampus
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-=======
-    url: jdbc:postgresql://ep-purple-truth-anxmcype.c-6.us-east-1.aws.neon.tech:5432/neondb?sslmode=require
-    driver-class-name: org.postgresql.Driver
-    username: neondb_owner
-    password: npg_Fuo3PdzVJ1Ms
->>>>>>> Stashed changes
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-purple-truth-anxmcype.c-6.us-east-1.aws.neon.tech:5432/neondb?sslmode=require}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:neondb_owner}
+    password: ${SPRING_DATASOURCE_PASSWORD:npg_Fuo3PdzVJ1Ms}
   security:
     oauth2:
       client:
@@ -31,7 +23,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID:your-client-id}
             client-secret: ${GOOGLE_CLIENT_SECRET:your-client-secret}
-            redirect-uri: http://localhost:8080/login/oauth2/code/google
+            redirect-uri: http://localhost:${SERVER_PORT:8081}${SERVER_SERVLET_CONTEXT_PATH:/api}/login/oauth2/code/google
             scope: openid,profile,email
         provider:
           google:
@@ -39,20 +31,20 @@ spring:
             user-name-attribute: sub
   web:
     cors:
-      allowed-origins: http://localhost:3000, http://localhost:5173
+      allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:8081}
       allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
       allowed-headers: "*"
       allow-credentials: true
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8081}
   servlet:
-    context-path: /api
+    context-path: ${SERVER_SERVLET_CONTEXT_PATH:/api}
 
 logging:
   level:
-    root: INFO
-    com.smartcampus: DEBUG
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.smartcampus: ${LOGGING_LEVEL_COM_SMARTCAMPUS:DEBUG}
     org.springframework.security: DEBUG
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
