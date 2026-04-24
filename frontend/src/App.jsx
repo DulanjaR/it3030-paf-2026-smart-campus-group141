@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TicketsPage from './pages/TicketsPage';
 import ResourcesPage from './pages/ResourcesPage';
+import BookingsPage from './pages/BookingsPage';
 import AddResourcePage from './pages/AddResourcePage';
 import EditResourcePage from './pages/EditResourcePage';
 import CataloguePage from './pages/CataloguePage';
@@ -61,6 +62,17 @@ function AppRoutes() {
             <ProtectedRoute>
               <Layout>
                 <ResourcesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/bookings"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <BookingsPage />
               </Layout>
             </ProtectedRoute>
           }
