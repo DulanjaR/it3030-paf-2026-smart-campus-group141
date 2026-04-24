@@ -21,10 +21,8 @@ export default function Layout({ children }) {
 
   const fetchUnreadCount = async () => {
     try {
-      const res = await apiClient.get('/notifications/unread-count', {
-        params: { userId: user.id },
-      });
-      setUnreadCount(res.data);
+      const res = await apiClient.get(`/notifications/${user.id}/count`);
+      setUnreadCount(res.data?.unreadCount || 0);
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }

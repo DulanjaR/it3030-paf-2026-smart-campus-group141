@@ -11,30 +11,31 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState('all'); // all, unread
 
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+    if (user?.id) {
+      fetchNotifications(filter);
+    }
+  }, [user?.id, filter]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (selectedFilter = filter) => {
     if (!user?.id) return;
-    
+
     setLoading(true);
     try {
-      const endpoint = filter === 'unread' ? '/notifications/unread' : '/notifications';
+      const endpoint =
+        selectedFilter === 'unread'
+          ? `/notifications/${user.id}/unread`
+          : `/notifications/${user.id}`;
       const res = await apiClient.get(endpoint, {
         params: {
-          userId: user.id,
-          page: 0,
-          size: 50,
+          limit: 50,
         },
       });
-      
-      setNotifications(res.data.content || []);
-      
+
+      setNotifications(res.data || []);
+
       // Fetch unread count
-      const countRes = await apiClient.get('/notifications/unread-count', {
-        params: { userId: user.id },
-      });
-      setUnreadCount(countRes.data);
+      const countRes = await apiClient.get(`/notifications/${user.id}/count`);
+      setUnreadCount(countRes.data?.unreadCount || 0);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -44,7 +45,7 @@ export default function NotificationsPage() {
 
   const handleMarkAsRead = async (id) => {
     try {
-      await apiClient.patch(`/notifications/${id}/read`);
+      await apiClient.put(`/notifications/${id}/read`);
       fetchNotifications();
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -53,9 +54,7 @@ export default function NotificationsPage() {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await apiClient.post('/notifications/mark-all-read', {
-        userId: user.id,
-      });
+      await apiClient.put(`/notifications/${user.id}/read-all`);
       fetchNotifications();
     } catch (error) {
       console.error('Error marking all as read:', error);
@@ -153,7 +152,6 @@ export default function NotificationsPage() {
         <button
           onClick={() => {
             setFilter('all');
-            fetchNotifications();
           }}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
             filter === 'all'
@@ -166,7 +164,6 @@ export default function NotificationsPage() {
         <button
           onClick={() => {
             setFilter('unread');
-            fetchNotifications();
           }}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
             filter === 'unread'
