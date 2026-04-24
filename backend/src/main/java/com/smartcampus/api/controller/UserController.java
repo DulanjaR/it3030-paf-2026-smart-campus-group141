@@ -112,7 +112,7 @@ public class UserController {
         userMap.put("profilePictureUrl", user.getProfilePictureUrl());
         
         response.put("user", userMap);
-        response.put("token", "jwt-token-" + System.currentTimeMillis()); // Mock token
+        response.put("token", "local-token-" + user.getId());
         return response;
     }
     
