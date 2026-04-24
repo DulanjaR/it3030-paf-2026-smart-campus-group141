@@ -12,6 +12,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchResources();
+    fetchOpenTickets();
   }, []);
 
   const fetchResources = async () => {
@@ -23,6 +24,21 @@ export default function DashboardPage() {
       }));
     } catch (error) {
       console.error('Error fetching resources:', error);
+    }
+  };
+
+  const fetchOpenTickets = async () => {
+    try {
+      const res = await apiClient.get('/tickets/filter/status', {
+        params: { status: 'OPEN', page: 0, size: 1 },
+      });
+
+      setStats((prev) => ({
+        ...prev,
+        openTickets: res.data?.totalElements ?? 0,
+      }));
+    } catch (error) {
+      console.error('Error fetching open tickets:', error);
     }
   };
 
