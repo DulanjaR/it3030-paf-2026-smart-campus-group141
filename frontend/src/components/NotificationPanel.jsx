@@ -81,6 +81,7 @@ function NotificationPanel({ userId, isOpen, onClose }) {
       case 'BOOKING_REJECTED':
         return <CheckCircle className="w-5 h-5 text-blue-500" />;
       case 'TICKET_UPDATE':
+      case 'TICKET_STATUS_CHANGED':
         return <AlertCircle className="w-5 h-5 text-orange-500" />;
       default:
         return <Bell className="w-5 h-5 text-gray-500" />;

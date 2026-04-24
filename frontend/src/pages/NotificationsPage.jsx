@@ -80,6 +80,7 @@ export default function NotificationsPage() {
       case 'TICKET_CREATED':
         return <Bell className={`${iconClass} text-blue-600`} />;
       case 'TICKET_RESOLVED':
+      case 'TICKET_STATUS_CHANGED':
         return <Check className={`${iconClass} text-green-600`} />;
       case 'COMMENT_ADDED':
         return <Bell className={`${iconClass} text-purple-600`} />;
@@ -99,6 +100,7 @@ export default function NotificationsPage() {
       case 'TICKET_CREATED':
         return 'bg-blue-50 border-blue-200';
       case 'TICKET_RESOLVED':
+      case 'TICKET_STATUS_CHANGED':
         return 'bg-green-50 border-green-200';
       case 'COMMENT_ADDED':
         return 'bg-purple-50 border-purple-200';
