@@ -3,6 +3,7 @@ package com.smartcampus.api.service;
 import com.smartcampus.api.dto.BookingRequestDto;
 import com.smartcampus.api.entity.Booking;
 import com.smartcampus.api.entity.BookingStatus;
+import com.smartcampus.api.entity.NotificationType;
 import com.smartcampus.api.entity.Resource;
 import com.smartcampus.api.entity.User;
 import com.smartcampus.api.exception.ApiException;
@@ -29,15 +30,18 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final CurrentUserService currentUserService;
+    private final NotificationService notificationService;
 
     public BookingService(
             BookingRepository bookingRepository,
             ResourceRepository resourceRepository,
-            CurrentUserService currentUserService
+            CurrentUserService currentUserService,
+            NotificationService notificationService
     ) {
         this.bookingRepository = bookingRepository;
         this.resourceRepository = resourceRepository;
         this.currentUserService = currentUserService;
+        this.notificationService = notificationService;
     }
 
     public Booking createBooking(BookingRequestDto request, User user) {
@@ -96,7 +100,19 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.APPROVED);
         booking.setRejectionReason(null);
-        return bookingRepository.save(booking);
+        Booking updatedBooking = bookingRepository.save(booking);
+
+        notificationService.createNotification(
+                updatedBooking.getUser(),
+                "Booking Approved",
+                String.format("Your booking for %s on %s has been approved.",
+                        updatedBooking.getResource().getName(),
+                        updatedBooking.getBookingDate()),
+                NotificationType.BOOKING_APPROVED,
+                String.valueOf(updatedBooking.getId())
+        );
+
+        return updatedBooking;
     }
 
     public Booking rejectBooking(Long bookingId, String rejectionReason) {
@@ -105,7 +121,20 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.REJECTED);
         booking.setRejectionReason(rejectionReason);
-        return bookingRepository.save(booking);
+        Booking updatedBooking = bookingRepository.save(booking);
+
+        notificationService.createNotification(
+                updatedBooking.getUser(),
+                "Booking Rejected",
+                String.format("Your booking for %s on %s was rejected: %s",
+                        updatedBooking.getResource().getName(),
+                        updatedBooking.getBookingDate(),
+                        rejectionReason != null && !rejectionReason.isBlank() ? rejectionReason : "No reason provided."),
+                NotificationType.BOOKING_REJECTED,
+                String.valueOf(updatedBooking.getId())
+        );
+
+        return updatedBooking;
     }
 
     public Booking cancelBooking(Long bookingId, User currentUser) {
