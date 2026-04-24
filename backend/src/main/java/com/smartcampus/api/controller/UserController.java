@@ -102,14 +102,16 @@ public class UserController {
     private Map<String, Object> createLoginResponse(User user, String message) {
         Map<String, Object> response = new HashMap<>();
         response.put("message", message);
-        response.put("user", Map.of(
-            "id", user.getId(),
-            "email", user.getEmail(),
-            "firstName", user.getFirstName(),
-            "lastName", user.getLastName(),
-            "role", user.getRole(),
-            "profilePictureUrl", user.getProfilePictureUrl()
-        ));
+        
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("id", user.getId());
+        userMap.put("email", user.getEmail());
+        userMap.put("firstName", user.getFirstName());
+        userMap.put("lastName", user.getLastName());
+        userMap.put("role", user.getRole());
+        userMap.put("profilePictureUrl", user.getProfilePictureUrl());
+        
+        response.put("user", userMap);
         response.put("token", "jwt-token-" + System.currentTimeMillis()); // Mock token
         return response;
     }

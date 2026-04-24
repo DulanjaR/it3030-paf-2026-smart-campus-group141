@@ -30,7 +30,7 @@ public class User {
     private String lastName;
     
     @Column(unique = true)
-    private String googleId;
+    private String googleId; // Only unique when not null
     
     private String password; // For email/password registration
     
