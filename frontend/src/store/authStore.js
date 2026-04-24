@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 
-const storedToken = localStorage.getItem('authToken');
-const storedUser = localStorage.getItem('user');
+const getStoredUser = () => {
+  const user = localStorage.getItem('user');
+  return user ? JSON.parse(user) : null;
+};
 
 const useAuthStore = create((set) => ({
-  user: storedUser ? JSON.parse(storedUser) : null,
-  token: storedToken || null,
-  isAuthenticated: !!storedToken,
-  
+  user: getStoredUser(),
+  token: localStorage.getItem('authToken') || null,
+  isAuthenticated: !!localStorage.getItem('authToken'),
+
   setUser: (user) => {
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
@@ -16,7 +18,7 @@ const useAuthStore = create((set) => ({
     }
     set({ user });
   },
-  
+
   setToken: (token) => {
     if (token) {
       localStorage.setItem('authToken', token);
@@ -25,13 +27,13 @@ const useAuthStore = create((set) => ({
     }
     set({ token, isAuthenticated: !!token });
   },
-  
+
   logout: () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
     set({ user: null, token: null, isAuthenticated: false });
   },
-  
+
   loadFromStorage: () => {
     const token = localStorage.getItem('authToken');
     const user = localStorage.getItem('user');
