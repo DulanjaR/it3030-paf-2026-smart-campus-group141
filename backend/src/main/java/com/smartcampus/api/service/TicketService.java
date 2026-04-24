@@ -23,6 +23,7 @@ public class TicketService {
     private final CommentRepository commentRepository;
     private final AttachmentRepository attachmentRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
     
     // ===== TICKET CRUD =====
     
@@ -76,13 +77,33 @@ public class TicketService {
     
     public Ticket updateTicketStatus(Long ticketId, TicketStatus newStatus) {
         Ticket ticket = getTicketById(ticketId);
+        TicketStatus previousStatus = ticket.getStatus();
+        if (previousStatus == newStatus) {
+            return ticket;
+        }
+
         ticket.setStatus(newStatus);
         
         if (newStatus == TicketStatus.RESOLVED || newStatus == TicketStatus.CLOSED) {
             ticket.setResolvedAt(LocalDateTime.now());
         }
         
-        return ticketRepository.save(ticket);
+        Ticket updatedTicket = ticketRepository.save(ticket);
+
+        notificationService.createNotification(
+                updatedTicket.getCreator(),
+                "Ticket status updated",
+                String.format(
+                        "Your ticket '%s' changed from %s to %s.",
+                        updatedTicket.getTitle(),
+                        previousStatus,
+                        newStatus
+                ),
+                newStatus == TicketStatus.RESOLVED ? NotificationType.TICKET_RESOLVED : NotificationType.TICKET_STATUS_CHANGED,
+                String.valueOf(updatedTicket.getId())
+        );
+
+        return updatedTicket;
     }
     
     public Ticket updateTicketPriority(Long ticketId, TicketPriority newPriority) {
@@ -93,9 +114,24 @@ public class TicketService {
     
     public Ticket assignTicketToTechnician(Long ticketId, String technicianEmail) {
         Ticket ticket = getTicketById(ticketId);
+        TicketStatus previousStatus = ticket.getStatus();
         ticket.setAssignedTo(technicianEmail);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
-        return ticketRepository.save(ticket);
+        Ticket updatedTicket = ticketRepository.save(ticket);
+
+        if (previousStatus != TicketStatus.IN_PROGRESS) {
+            notificationService.createNotification(
+                    updatedTicket.getCreator(),
+                    "Ticket assigned",
+                    String.format("Your ticket '%s' is now in progress and assigned to %s.",
+                            updatedTicket.getTitle(),
+                            technicianEmail),
+                    NotificationType.TICKET_STATUS_CHANGED,
+                    String.valueOf(updatedTicket.getId())
+            );
+        }
+
+        return updatedTicket;
     }
     
     public Ticket unassignTicket(Long ticketId) {
@@ -122,7 +158,19 @@ public class TicketService {
             .content(content)
             .build();
         
-        return commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
+
+        if (!ticket.getCreator().getId().equals(author.getId())) {
+            notificationService.createNotification(
+                    ticket.getCreator(),
+                    "New comment on your ticket",
+                    String.format("%s commented on your ticket '%s'.", author.getFirstName(), ticket.getTitle()),
+                    NotificationType.COMMENT_ADDED,
+                    String.valueOf(ticket.getId())
+            );
+        }
+
+        return savedComment;
     }
     
     public Page<Comment> getTicketComments(Long ticketId, Pageable pageable) {

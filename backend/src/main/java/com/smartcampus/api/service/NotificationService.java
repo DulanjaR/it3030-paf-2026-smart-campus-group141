@@ -1,126 +1,139 @@
 package com.smartcampus.api.service;
 
+import com.smartcampus.api.dto.NotificationResponse;
 import com.smartcampus.api.entity.Notification;
 import com.smartcampus.api.entity.NotificationType;
 import com.smartcampus.api.entity.User;
 import com.smartcampus.api.repository.NotificationRepository;
-import com.smartcampus.api.repository.UserRepository;
-import lombok.AllArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
 @Transactional
 public class NotificationService {
     
     private final NotificationRepository notificationRepository;
-    private final UserRepository userRepository;
     
-    /**
-     * Get all notifications for a user (paginated)
-     */
-    public Page<Notification> getNotifications(Long userId, Pageable pageable) {
-        return notificationRepository.findByUserId(userId, pageable);
+    public NotificationService(NotificationRepository notificationRepository) {
+        this.notificationRepository = notificationRepository;
     }
     
     /**
-     * Get unread notifications only
+     * Member 4 - Create notification
+     * Called by other services (booking, ticket, comment) for events
+     * CRITICAL: Booking/Ticket/Comment services depend on this
      */
-    public Page<Notification> getUnreadNotifications(Long userId, Pageable pageable) {
-        return notificationRepository.findByUserIdAndReadFalse(userId, pageable);
+    public Notification createNotification(User user, String title, String message, NotificationType type) {
+        return createNotification(user, title, message, type, null);
     }
     
     /**
-     * Create and send a notification to a user
+     * Create notification with related resource ID
+     * Allows UI to navigate to the relevant resource
      */
-    public Notification createNotification(Long userId, String title, String message, 
+    public Notification createNotification(User user, String title, String message, 
                                           NotificationType type, String relatedResourceId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        
         Notification notification = Notification.builder()
-            .user(user)
-            .title(title)
-            .message(message)
-            .type(type)
-            .relatedResourceId(relatedResourceId)
-            .read(false)
-            .build();
+                .user(user)
+                .title(title)
+                .message(message)
+                .type(type)
+                .relatedResourceId(relatedResourceId)
+                .read(false)
+                .build();
         
         return notificationRepository.save(notification);
     }
     
     /**
-     * Mark a notification as read
+     * Get unread notifications for user
      */
-    public Notification markAsRead(Long notificationId) {
+    public List<NotificationResponse> getUnreadNotifications(Long userId) {
+        return notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::convertToNotificationResponse)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get all notifications for user (paginated)
+     */
+    public List<NotificationResponse> getUserNotifications(Long userId, int limit) {
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .limit(limit)
+                .map(this::convertToNotificationResponse)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Mark notification as read
+     */
+    public NotificationResponse markAsRead(Long notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
-            .orElseThrow(() -> new RuntimeException("Notification not found"));
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
         
         notification.setRead(true);
         notification.setReadAt(LocalDateTime.now());
-        return notificationRepository.save(notification);
+        Notification updated = notificationRepository.save(notification);
+        
+        return convertToNotificationResponse(updated);
     }
     
     /**
-     * Mark all notifications as read for a user
+     * Mark all notifications as read for user
      */
     public void markAllAsRead(Long userId) {
-        Page<Notification> unreadNotifications = notificationRepository
-            .findByUserIdAndReadFalse(userId, org.springframework.data.domain.Pageable.unpaged());
+        List<Notification> unreadNotifications = 
+                notificationRepository.findByUserIdAndReadFalse(userId);
         
-        unreadNotifications.forEach(notification -> {
-            notification.setRead(true);
-            notification.setReadAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        unreadNotifications.forEach(n -> {
+            n.setRead(true);
+            n.setReadAt(now);
         });
         
         notificationRepository.saveAll(unreadNotifications);
     }
     
     /**
-     * Delete a notification
+     * Delete notification
      */
     public void deleteNotification(Long notificationId) {
         notificationRepository.deleteById(notificationId);
     }
     
     /**
-     * Get count of unread notifications
+     * Delete all notifications for user
      */
-    public Long getUnreadCount(Long userId) {
-        Page<Notification> unreadNotifications = notificationRepository
-            .findByUserIdAndReadFalse(userId, org.springframework.data.domain.Pageable.unpaged());
-        return (long) unreadNotifications.getNumberOfElements();
+    public void deleteAllNotifications(Long userId) {
+        List<Notification> notifications = notificationRepository.findByUserId(userId);
+        notificationRepository.deleteAll(notifications);
     }
     
     /**
-     * Send booking-related notification
+     * Get unread count for user
      */
-    public Notification sendBookingNotification(Long userId, String bookingStatus, String resourceName) {
-        String title = "Booking " + bookingStatus;
-        String message = "Your booking for " + resourceName + " has been " + bookingStatus.toLowerCase();
-        NotificationType type = bookingStatus.equalsIgnoreCase("APPROVED") 
-            ? NotificationType.BOOKING_APPROVED 
-            : NotificationType.BOOKING_REJECTED;
-        
-        return createNotification(userId, title, message, type, null);
+    public long getUnreadCount(Long userId) {
+        return notificationRepository.countByUserIdAndReadFalse(userId);
     }
     
     /**
-     * Send ticket-related notification
+     * Helper: Convert Notification entity to NotificationResponse DTO
      */
-    public Notification sendTicketNotification(Long userId, String action, String ticketId) {
-        String title = "Ticket " + action;
-        String message = "Ticket #" + ticketId + " has been " + action.toLowerCase();
-        NotificationType type = action.equalsIgnoreCase("CREATED") 
-            ? NotificationType.TICKET_CREATED 
-            : NotificationType.TICKET_RESOLVED;
-        
-        return createNotification(userId, title, message, type, ticketId);
+    private NotificationResponse convertToNotificationResponse(Notification notification) {
+        return NotificationResponse.builder()
+                .id(notification.getId())
+                .title(notification.getTitle())
+                .message(notification.getMessage())
+                .type(notification.getType())
+                .read(notification.getRead())
+                .relatedResourceId(notification.getRelatedResourceId())
+                .createdAt(notification.getCreatedAt())
+                .readAt(notification.getReadAt())
+                .build();
     }
 }
