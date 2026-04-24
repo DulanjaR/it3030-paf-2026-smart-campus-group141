@@ -1,13 +1,21 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TicketsPage from './pages/TicketsPage';
+import ResourcesPage from './pages/ResourcesPage';
+import AddResourcePage from './pages/AddResourcePage';
+import EditResourcePage from './pages/EditResourcePage';
+import CataloguePage from './pages/CataloguePage';
+import ResourceDetailsPage from './pages/ResourceDetailsPage';
 import { useAuthStore } from './store/authStore';
+import './App.css';
 
 // Google OAuth is optional for development
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const USE_GOOGLE_AUTH = GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'your-google-client-id-here';
+const USE_GOOGLE_AUTH =
+  GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'your-google-client-id-here';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuthStore();
@@ -24,6 +32,7 @@ function AppRoutes() {
           path="/login"
           element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
         />
+
         <Route
           path="/dashboard"
           element={
@@ -34,6 +43,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/tickets"
           element={
@@ -44,6 +54,43 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/resources"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ResourcesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/resources/add"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AddResourcePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/resources/edit/:id"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <EditResourcePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/catalogue" element={<CataloguePage />} />
+        <Route path="/catalogue/:id" element={<ResourceDetailsPage />} />
+
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>
@@ -51,9 +98,7 @@ function AppRoutes() {
 }
 
 export default function App() {
-  // If Google Auth is configured, wrap with GoogleOAuthProvider
   if (USE_GOOGLE_AUTH) {
-    const { GoogleOAuthProvider } = require('@react-oauth/google');
     return (
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         <AppRoutes />
@@ -61,6 +106,5 @@ export default function App() {
     );
   }
 
-  // Otherwise, just render routes without Google OAuth
   return <AppRoutes />;
 }

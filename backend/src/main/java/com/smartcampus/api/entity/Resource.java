@@ -47,7 +47,7 @@ public class Resource {
     private Boolean available = true;
     
     private String imageUrl;
-    
+
     @Column(columnDefinition = "TEXT")
     private String availableDays; // e.g., MONDAY-SATURDAY
     

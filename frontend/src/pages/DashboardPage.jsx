@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Calendar, AlertCircle, Package, Bell } from 'lucide-react';
+import apiClient from '../services/apiClient';
 
 export default function DashboardPage() {
-  const [stats] = useState({
+  const [stats, setStats] = useState({
     totalResources: 0,
     activeBookings: 0,
     openTickets: 0,
@@ -10,14 +11,27 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    // TODO: Fetch dashboard data from API
+    fetchResources();
   }, []);
+
+  const fetchResources = async () => {
+    try {
+      const res = await apiClient.get('/resources');
+      setStats((prev) => ({
+        ...prev,
+        totalResources: res.data.totalElements,
+      }));
+    } catch (error) {
+      console.error('Error fetching resources:', error);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        
         {/* Total Resources Card */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
@@ -31,7 +45,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Active Bookings Card */}
+        {/* Active Bookings */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -44,7 +58,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Open Tickets Card */}
+        {/* Open Tickets */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -57,7 +71,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Notifications Card */}
+        {/* Notifications */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -69,6 +83,7 @@ export default function DashboardPage() {
             <Bell className="h-12 w-12 text-yellow-500" />
           </div>
         </div>
+
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
