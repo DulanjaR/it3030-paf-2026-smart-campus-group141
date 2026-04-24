@@ -24,6 +24,12 @@ export default function Layout({ children }) {
   }, [user?.id]);
 
   useEffect(() => {
+    if (notificationsOpen && user?.id) {
+      fetchUnreadCount();
+    }
+  }, [notificationsOpen, user?.id]);
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (panelRef.current && !panelRef.current.contains(event.target)) {
         setNotificationsOpen(false);
