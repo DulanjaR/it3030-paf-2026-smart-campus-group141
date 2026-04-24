@@ -158,7 +158,19 @@ public class TicketService {
             .content(content)
             .build();
         
-        return commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
+
+        if (!ticket.getCreator().getId().equals(author.getId())) {
+            notificationService.createNotification(
+                    ticket.getCreator(),
+                    "New comment on your ticket",
+                    String.format("%s commented on your ticket '%s'.", author.getFirstName(), ticket.getTitle()),
+                    NotificationType.COMMENT_ADDED,
+                    String.valueOf(ticket.getId())
+            );
+        }
+
+        return savedComment;
     }
     
     public Page<Comment> getTicketComments(Long ticketId, Pageable pageable) {
