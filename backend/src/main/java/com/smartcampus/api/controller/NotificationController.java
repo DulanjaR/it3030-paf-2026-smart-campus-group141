@@ -1,78 +1,145 @@
 package com.smartcampus.api.controller;
 
-import com.smartcampus.api.entity.Notification;
+import com.smartcampus.api.dto.NotificationResponse;
 import com.smartcampus.api.service.NotificationService;
-import lombok.AllArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
+/**
+ * Member 4 - Notification Controller
+ * Handles notification retrieval, marking as read, deletion
+ * 
+ * Endpoints:
+ * - GET /api/notifications/{userId} (Get all notifications)
+ * - GET /api/notifications/{userId}/unread (Get unread notifications)
+ * - GET /api/notifications/{userId}/count (Get unread count)
+ * - PUT /api/notifications/{notificationId}/read (Mark as read)
+ * - PUT /api/notifications/{userId}/read-all (Mark all as read)
+ * - DELETE /api/notifications/{notificationId} (Delete notification)
+ * - DELETE /api/notifications/{userId}/all (Delete all notifications)
+ * 
+ * Called by: Frontend notification panel, booking/ticket services
+ */
 @RestController
-@RequestMapping("/notifications")
-@AllArgsConstructor
+@RequestMapping("/api/notifications")
 public class NotificationController {
     
     private final NotificationService notificationService;
     
-    /**
-     * GET /api/notifications?userId=1&page=0&size=10
-     * Get all notifications for a user
-     */
-    @GetMapping
-    public Page<Notification> getNotifications(
-            @RequestParam Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        return notificationService.getNotifications(userId, PageRequest.of(page, size));
+    public NotificationController(NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
     
     /**
-     * GET /api/notifications/unread?userId=1&page=0&size=10
-     * Get unread notifications only
+     * GET /api/notifications/{userId}
+     * Get all notifications for user (limited to latest 50)
+     * HTTP Method: GET (Read-only)
+     * 
+     * @param userId User ID
+     * @param limit Number of notifications to retrieve (default 50)
+     * @return List of NotificationResponse
      */
-    @GetMapping("/unread")
-    public Page<Notification> getUnreadNotifications(
-            @RequestParam Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        return notificationService.getUnreadNotifications(userId, PageRequest.of(page, size));
+    @GetMapping("/{userId}")
+    public ResponseEntity<List<NotificationResponse>> getUserNotifications(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "50") int limit) {
+        List<NotificationResponse> notifications = notificationService.getUserNotifications(userId, limit);
+        return ResponseEntity.ok(notifications);
     }
     
     /**
-     * GET /api/notifications/unread-count?userId=1
+     * GET /api/notifications/{userId}/unread
+     * Get unread notifications for user
+     * HTTP Method: GET (Read-only)
+     * Required by: Frontend to show unread badge, auto-refresh
+     * 
+     * @param userId User ID
+     * @return List of unread NotificationResponse
+     */
+    @GetMapping("/{userId}/unread")
+    public ResponseEntity<List<NotificationResponse>> getUnreadNotifications(@PathVariable Long userId) {
+        List<NotificationResponse> unreadNotifications = notificationService.getUnreadNotifications(userId);
+        return ResponseEntity.ok(unreadNotifications);
+    }
+    
+    /**
+     * GET /api/notifications/{userId}/count
      * Get count of unread notifications
+     * HTTP Method: GET (Read-only)
+     * 
+     * @param userId User ID
+     * @return Map with unread count
      */
-    @GetMapping("/unread-count")
-    public Long getUnreadCount(@RequestParam Long userId) {
-        return notificationService.getUnreadCount(userId);
+    @GetMapping("/{userId}/count")
+    public ResponseEntity<Map<String, Long>> getUnreadCount(@PathVariable Long userId) {
+        long count = notificationService.getUnreadCount(userId);
+        Map<String, Long> response = new HashMap<>();
+        response.put("unreadCount", count);
+        return ResponseEntity.ok(response);
     }
     
     /**
-     * PATCH /api/notifications/{id}/read
-     * Mark a notification as read
+     * PUT /api/notifications/{notificationId}/read
+     * Mark a specific notification as read
+     * HTTP Method: PUT (Update)
+     * 
+     * @param notificationId Notification ID
+     * @return Updated NotificationResponse
      */
-    @PatchMapping("/{id}/read")
-    public Notification markAsRead(@PathVariable Long id) {
-        return notificationService.markAsRead(id);
+    @PutMapping("/{notificationId}/read")
+    public ResponseEntity<NotificationResponse> markAsRead(@PathVariable Long notificationId) {
+        NotificationResponse response = notificationService.markAsRead(notificationId);
+        return ResponseEntity.ok(response);
     }
     
     /**
-     * POST /api/notifications/mark-all-read?userId=1
-     * Mark all notifications as read for a user
+     * PUT /api/notifications/{userId}/read-all
+     * Mark all notifications as read for user
+     * HTTP Method: PUT (Update)
+     * 
+     * @param userId User ID
+     * @return Success message
      */
-    @PostMapping("/mark-all-read")
-    public void markAllAsRead(@RequestParam Long userId) {
+    @PutMapping("/{userId}/read-all")
+    public ResponseEntity<Map<String, String>> markAllAsRead(@PathVariable Long userId) {
         notificationService.markAllAsRead(userId);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "All notifications marked as read");
+        return ResponseEntity.ok(response);
     }
     
     /**
-     * DELETE /api/notifications/{id}
-     * Delete a notification
+     * DELETE /api/notifications/{notificationId}
+     * Delete a specific notification
+     * HTTP Method: DELETE (Delete)
+     * 
+     * @param notificationId Notification ID
+     * @return Success message
      */
-    @DeleteMapping("/{id}")
-    public void deleteNotification(@PathVariable Long id) {
-        notificationService.deleteNotification(id);
+    @DeleteMapping("/{notificationId}")
+    public ResponseEntity<Map<String, String>> deleteNotification(@PathVariable Long notificationId) {
+        notificationService.deleteNotification(notificationId);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Notification deleted successfully");
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * DELETE /api/notifications/{userId}/all
+     * Delete all notifications for user
+     * HTTP Method: DELETE (Delete)
+     * 
+     * @param userId User ID
+     * @return Success message
+     */
+    @DeleteMapping("/{userId}/all")
+    public ResponseEntity<Map<String, String>> deleteAllNotifications(@PathVariable Long userId) {
+        notificationService.deleteAllNotifications(userId);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "All notifications deleted successfully");
+        return ResponseEntity.ok(response);
     }
 }
