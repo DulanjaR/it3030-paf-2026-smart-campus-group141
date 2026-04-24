@@ -33,6 +33,10 @@ public class CurrentUserService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please sign in before using bookings.");
         }
 
+        if (token.startsWith("local-token-")) {
+            return resolveLocalUser(token);
+        }
+
         if (token.startsWith("mock-token-")) {
             return userService.createOrUpdateUser(
                     "dev@smartcampus.local",
@@ -41,6 +45,10 @@ public class CurrentUserService {
                     "mock-dev-user",
                     ""
             );
+        }
+
+        if (token.startsWith("jwt-token-")) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Session expired. Please log in again.");
         }
 
         GoogleProfile profile = fetchGoogleProfile(token);
@@ -113,6 +121,16 @@ public class CurrentUserService {
     private String value(Map<?, ?> body, String key) {
         Object value = body.get(key);
         return value == null ? "" : value.toString();
+    }
+
+    private User resolveLocalUser(String token) {
+        try {
+            String rawUserId = token.substring("local-token-".length());
+            Long userId = Long.parseLong(rawUserId);
+            return userService.findById(userId);
+        } catch (RuntimeException ex) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid local session. Please log in again.");
+        }
     }
 
     private record GoogleProfile(
