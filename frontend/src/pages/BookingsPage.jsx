@@ -1,256 +1,324 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Users, MapPin, Clock, Trash2, X } from 'lucide-react';
-import apiClient from '../services/apiClient';
+import { Eye, Plus } from 'lucide-react';
+import BookingFormModal from '../components/bookings/BookingFormModal';
+import BookingDetailsModal from '../components/bookings/BookingDetailsModal';
+import bookingService from '../services/bookingService';
+import { resourceService } from '../services/apiServices';
+import { useAuthStore } from '../store/authStore';
+
+const statusClasses = {
+  PENDING: 'bg-yellow-100 text-yellow-800',
+  APPROVED: 'bg-green-100 text-green-800',
+  REJECTED: 'bg-red-100 text-red-800',
+  CANCELLED: 'bg-gray-100 text-gray-700',
+};
 
 export default function BookingsPage() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [resources, setResources] = useState([]);
+  const [filters, setFilters] = useState({
+    date: '',
+    resourceId: '',
+    status: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    fetchBookings();
-  }, [page]);
+    loadResources();
+    loadBookings();
+  }, []);
 
-  const fetchBookings = async () => {
+  const loadResources = async () => {
     try {
-      setLoading(true);
-      const response = await apiClient.get(`/bookings?page=${page}&size=10`);
-      setBookings(response.data.content || []);
-      setTotalPages(response.data.totalPages || 1);
-      setError('');
-    } catch (err) {
-      setError('Failed to load bookings');
-      setBookings([]);
+      const data = await resourceService.getAll();
+      setResources(Array.isArray(data) ? data : data.content || []);
+    } catch (error) {
+      console.error('Failed to load resources:', error);
+    }
+  };
+
+  const loadBookings = async (activeFilters = filters) => {
+    setLoading(true);
+    setActionMessage('');
+
+    try {
+      const query = Object.fromEntries(
+        Object.entries(activeFilters).filter(([, value]) => value !== '')
+      );
+      const data = await bookingService.getAll(query);
+      setBookings(data);
+    } catch (error) {
+      console.error('Failed to load bookings:', error);
+      setActionMessage(error.response?.data?.message || 'Could not load bookings.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteBooking = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+  const updateFilter = (event) => {
+    const { name, value } = event.target;
+    setFilters((current) => ({ ...current, [name]: value }));
+  };
+
+  const resetFilters = () => {
+    const emptyFilters = { date: '', resourceId: '', status: '' };
+    setFilters(emptyFilters);
+    loadBookings(emptyFilters);
+  };
+
+  const createBooking = async (bookingData) => {
+    setIsSubmitting(true);
+    setFormError('');
 
     try {
-      await apiClient.delete(`/bookings/${bookingId}`);
-      setBookings(bookings.filter(b => b.id !== bookingId));
-      setSelectedBooking(null);
-    } catch (err) {
-      setError('Failed to cancel booking');
+      await bookingService.create(bookingData);
+      setFormOpen(false);
+      await loadBookings();
+    } catch (error) {
+      const message = error.response?.data?.message || 'Could not create booking.';
+      setFormError(
+        error.response?.status === 409
+          ? 'This resource is already booked for the selected time.'
+          : message
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'APPROVED':
-        return 'bg-green-100 text-green-800';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'REJECTED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const approveBooking = async (id) => {
+    await runAction(() => bookingService.approve(id));
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const rejectBooking = async (id) => {
+    const reason = window.prompt('Enter rejection reason:');
+    if (!reason) {
+      return;
+    }
+    await runAction(() => bookingService.reject(id, reason));
+  };
+
+  const cancelBooking = async (id) => {
+    if (!window.confirm('Cancel this booking?')) {
+      return;
+    }
+    await runAction(() => bookingService.cancel(id));
+  };
+
+  const runAction = async (action) => {
+    setActionMessage('');
+    try {
+      await action();
+      await loadBookings();
+    } catch (error) {
+      setActionMessage(error.response?.data?.message || 'Action failed. Please try again.');
+    }
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <Calendar className="text-blue-600" size={32} />
-          My Bookings
-        </h1>
-        <p className="text-gray-600 mt-2">View and manage your resource bookings</p>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Bookings</h1>
+          <p className="mt-1 text-gray-600">Create bookings and manage approval workflow.</p>
+        </div>
+        <button
+          onClick={() => {
+            setFormError('');
+            setFormOpen(true);
+          }}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+        >
+          <Plus size={18} />
+          New Booking
+        </button>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-          <X className="text-red-600 mt-0.5" size={20} />
-          <span className="text-red-800">{error}</span>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin">
-            <Calendar size={32} className="text-blue-600" />
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <input
+              type="date"
+              name="date"
+              value={filters.date}
+              onChange={updateFilter}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            />
           </div>
-          <p className="text-gray-600 mt-4">Loading bookings...</p>
-        </div>
-      ) : bookings.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookings yet</h3>
-          <p className="text-gray-600">Browse resources and create your first booking!</p>
-        </div>
-      ) : (
-        <div className="grid gap-6">
-          {bookings.map((booking) => (
-            <div
-              key={booking.id}
-              className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 cursor-pointer"
-              onClick={() => setSelectedBooking(booking)}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Resource</label>
+            <select
+              name="resourceId"
+              value={filters.resourceId}
+              onChange={updateFilter}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {booking.resourceName || 'Resource'}
-                    </h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>
-                      {booking.status || 'PENDING'}
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 mt-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Clock size={16} className="text-gray-400" />
-                      <span>{formatDate(booking.startTime)} to {formatDate(booking.endTime)}</span>
-                    </div>
-                    {booking.userId && (
-                      <div className="flex items-center gap-2">
-                        <Users size={16} className="text-gray-400" />
-                        <span>Booked by: {booking.userName || 'User'}</span>
-                      </div>
-                    )}
-                  </div>
+              <option value="">All resources</option>
+              {resources.map((resource) => (
+                <option key={resource.id} value={resource.id}>
+                  {resource.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
+            <select
+              name="status"
+              value={filters.status}
+              onChange={updateFilter}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">All statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+          <div className="flex items-end gap-2">
+            <button
+              onClick={() => loadBookings()}
+              className="flex-1 rounded-lg bg-gray-900 px-4 py-2 font-medium text-white hover:bg-gray-800"
+            >
+              Search
+            </button>
+            <button
+              onClick={resetFilters}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
 
-                  {booking.notes && (
-                    <p className="mt-3 text-gray-700 text-sm">{booking.notes}</p>
-                  )}
-                </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteBooking(booking.id);
-                  }}
-                  className="ml-4 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Cancel booking"
-                >
-                  <Trash2 size={20} />
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8">
-              <button
-                onClick={() => setPage(Math.max(0, page - 1))}
-                disabled={page === 0}
-                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Previous
-              </button>
-              <span className="text-gray-600">
-                Page {page + 1} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-                disabled={page >= totalPages - 1}
-                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Next
-              </button>
-            </div>
-          )}
+      {actionMessage && (
+        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {actionMessage}
         </div>
       )}
 
-      {/* Booking Detail Modal */}
-      {selectedBooking && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={() => setSelectedBooking(null)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Booking Details</h2>
-              <button
-                onClick={() => setSelectedBooking(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Resource
-                </label>
-                <p className="text-gray-900">{selectedBooking.resourceName}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedBooking.status)}`}>
-                  {selectedBooking.status}
-                </span>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Date & Time
-                </label>
-                <p className="text-gray-900">{formatDate(selectedBooking.startTime)}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  End Date & Time
-                </label>
-                <p className="text-gray-900">{formatDate(selectedBooking.endTime)}</p>
-              </div>
-
-              {selectedBooking.notes && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notes
-                  </label>
-                  <p className="text-gray-900">{selectedBooking.notes}</p>
-                </div>
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <TableHeader>Resource</TableHeader>
+                <TableHeader>Date</TableHeader>
+                <TableHeader>Time</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader>Actions</TableHeader>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {loading && (
+                <tr>
+                  <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
+                    Loading bookings...
+                  </td>
+                </tr>
               )}
 
-              <div className="pt-4 border-t flex gap-2">
-                <button
-                  onClick={() => setSelectedBooking(null)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Close
-                </button>
-                {selectedBooking.status === 'PENDING' && (
-                  <button
-                    onClick={() => handleDeleteBooking(selectedBooking.id)}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Trash2 size={16} />
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+              {!loading && bookings.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
+                    No bookings found.
+                  </td>
+                </tr>
+              )}
+
+              {!loading && bookings.map((booking) => (
+                <tr key={booking.id} className="hover:bg-gray-50">
+                  <TableCell>{booking.resourceName}</TableCell>
+                  <TableCell>{booking.date}</TableCell>
+                  <TableCell>{booking.startTime} - {booking.endTime}</TableCell>
+                  <TableCell>
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClasses[booking.status]}`}>
+                      {booking.status}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setSelectedBooking(booking)}
+                        className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <Eye size={14} />
+                        View
+                      </button>
+
+                      {isAdmin && booking.status === 'PENDING' && (
+                        <>
+                          <button
+                            onClick={() => approveBooking(booking.id)}
+                            className="rounded-md bg-green-600 px-3 py-1 text-sm font-medium text-white hover:bg-green-700"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => rejectBooking(booking.id)}
+                            className="rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+
+                      {!isAdmin && ['PENDING', 'APPROVED'].includes(booking.status) && (
+                        <button
+                          onClick={() => cancelBooking(booking.id)}
+                          className="rounded-md bg-gray-700 px-3 py-1 text-sm font-medium text-white hover:bg-gray-800"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </TableCell>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
+
+      <BookingFormModal
+        isOpen={formOpen}
+        resources={resources}
+        onClose={() => setFormOpen(false)}
+        onSubmit={createBooking}
+        serverError={formError}
+        isSubmitting={isSubmitting}
+      />
+
+      <BookingDetailsModal
+        booking={selectedBooking}
+        onClose={() => setSelectedBooking(null)}
+      />
     </div>
+  );
+}
+
+function TableHeader({ children }) {
+  return (
+    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+      {children}
+    </th>
+  );
+}
+
+function TableCell({ children }) {
+  return (
+    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+      {children}
+    </td>
   );
 }

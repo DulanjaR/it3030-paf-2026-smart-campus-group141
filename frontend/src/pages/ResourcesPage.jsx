@@ -16,7 +16,7 @@ export default function ResourcesPage() {
   const fetchResources = async () => {
     try {
       const res = await apiClient.get('/resources');
-      setResources(res.data.content);
+      setResources(Array.isArray(res.data) ? res.data : res.data.content || []);
     } catch (error) {
       console.error('Error fetching resources:', error);
     }

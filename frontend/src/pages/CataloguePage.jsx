@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import apiClient from '../services/apiClient';
+import BookingFormModal from '../components/bookings/BookingFormModal';
+import bookingService from '../services/bookingService';
 import {
   Search,
   Filter,
@@ -17,6 +19,11 @@ export default function CataloguePage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [minCapacity, setMinCapacity] = useState('');
   const [maxCapacity, setMaxCapacity] = useState('');
+  const [selectedResource, setSelectedResource] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchResources();
@@ -25,7 +32,7 @@ export default function CataloguePage() {
   const fetchResources = async () => {
     try {
       const res = await apiClient.get('/resources');
-      setResources(res.data.content);
+      setResources(Array.isArray(res.data) ? res.data : res.data.content || []);
     } catch (error) {
       console.error('Error fetching resources:', error);
     }
@@ -36,6 +43,41 @@ export default function CataloguePage() {
     setTypeFilter('');
     setMinCapacity('');
     setMaxCapacity('');
+  };
+
+  const openBookingModal = (resource) => {
+    setSelectedResource(resource);
+    setFormError('');
+    setSuccessMessage('');
+    setFormOpen(true);
+  };
+
+  const closeBookingModal = () => {
+    setFormOpen(false);
+    setFormError('');
+    setSelectedResource(null);
+  };
+
+  const createBooking = async (bookingData) => {
+    setIsSubmitting(true);
+    setFormError('');
+    setSuccessMessage('');
+
+    try {
+      await bookingService.create(bookingData);
+      setFormOpen(false);
+      setSelectedResource(null);
+      setSuccessMessage('Booking request submitted successfully.');
+    } catch (error) {
+      const message = error.response?.data?.message || 'Could not submit booking request.';
+      setFormError(
+        error.response?.status === 409
+          ? 'This resource is already booked for the selected time.'
+          : message
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredResources = resources.filter((r) => {
@@ -66,6 +108,12 @@ export default function CataloguePage() {
             Browse available campus facilities and assets with their availability windows
           </p>
         </div>
+
+        {successMessage && (
+          <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 shadow-sm">
+            {successMessage}
+          </div>
+        )}
 
         {/* Filters */}
         <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -225,9 +273,7 @@ export default function CataloguePage() {
                       : 'bg-gray-400 cursor-not-allowed'
                   }`}
                   disabled={!r.available}
-                  onClick={() => {
-                    alert(`Booking started for: ${r.name}`);
-                  }}
+                  onClick={() => openBookingModal(r)}
                 >
                   Book Now
                 </button>
@@ -236,6 +282,19 @@ export default function CataloguePage() {
           </div>
         )}
       </div>
+
+      <BookingFormModal
+        isOpen={formOpen}
+        resources={resources}
+        onClose={closeBookingModal}
+        onSubmit={createBooking}
+        serverError={formError}
+        isSubmitting={isSubmitting}
+        initialResourceId={selectedResource?.id || ''}
+        initialResourceName={selectedResource?.name || ''}
+        showExpectedAttendees
+        title="Request Booking"
+      />
     </div>
   );
 }
