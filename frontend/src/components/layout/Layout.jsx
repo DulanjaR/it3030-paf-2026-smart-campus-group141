@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Menu, LogOut, Settings } from 'lucide-react';
+import { Menu, Settings } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import apiClient from '../../services/apiClient';
 import NotificationBell from '../NotificationBell';
 import NotificationPanel from '../NotificationPanel';
+import UserProfile from '../UserProfile';
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
@@ -49,11 +50,6 @@ export default function Layout({ children }) {
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
   };
 
   const menuItems = [
@@ -108,11 +104,6 @@ export default function Layout({ children }) {
           <div className="flex items-center justify-between px-6 py-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Smart Campus</h2>
-              {user && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Welcome, {user.firstName} ({user.role})
-                </p>
-              )}
             </div>
             <div className="flex items-center gap-4 relative" ref={panelRef}>
               <NotificationBell
@@ -126,14 +117,8 @@ export default function Layout({ children }) {
                 onNotificationsChange={fetchUnreadCount}
               />
 
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <LogOut size={18} />
-                Logout
-              </button>
+              {/* User Profile Dropdown */}
+              <UserProfile />
             </div>
           </div>
         </header>
