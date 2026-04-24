@@ -1,37 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, CheckCircle, AlertCircle } from 'lucide-react';
+import apiClient from '../services/apiClient';
 
 /**
  * Member 4 - NotificationPanel Component
- * Displays user notifications (booking approvals, ticket updates, comments)
- * Integrates with notification endpoints
+ * Displays user notifications in a dropdown panel
  */
-function NotificationPanel({ userId, isOpen, onClose }) {
+function NotificationPanel({ userId, isOpen, onClose, onNotificationsChange }) {
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && userId) {
       fetchNotifications();
     }
-  }, [isOpen]);
+  }, [isOpen, userId]);
 
   const fetchNotifications = async () => {
+    if (!userId) return;
     setLoading(true);
-    try {
-      const response = await fetch(
-        `http://localhost:8081/api/notifications/${userId}?limit=20`
-      );
-      const data = await response.json();
-      setNotifications(data);
 
-      // Get unread count
-      const countResponse = await fetch(
-        `http://localhost:8081/api/notifications/${userId}/count`
-      );
-      const countData = await countResponse.json();
-      setUnreadCount(countData.unreadCount);
+    try {
+      const response = await apiClient.get(`/notifications/${userId}`, {
+        params: { limit: 10 },
+      });
+      setNotifications(response.data || []);
+
+      const countResponse = await apiClient.get(`/notifications/${userId}/count`);
+      setUnreadCount(countResponse.data?.unreadCount || 0);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -41,11 +38,9 @@ function NotificationPanel({ userId, isOpen, onClose }) {
 
   const handleMarkAsRead = async (notificationId) => {
     try {
-      await fetch(
-        `http://localhost:8081/api/notifications/${notificationId}/read`,
-        { method: 'PUT' }
-      );
-      fetchNotifications();
+      await apiClient.put(`/notifications/${notificationId}/read`);
+      await fetchNotifications();
+      onNotificationsChange?.();
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -53,11 +48,9 @@ function NotificationPanel({ userId, isOpen, onClose }) {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await fetch(
-        `http://localhost:8081/api/notifications/${userId}/read-all`,
-        { method: 'PUT' }
-      );
-      fetchNotifications();
+      await apiClient.put(`/notifications/${userId}/read-all`);
+      await fetchNotifications();
+      onNotificationsChange?.();
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
@@ -65,11 +58,9 @@ function NotificationPanel({ userId, isOpen, onClose }) {
 
   const handleDeleteNotification = async (notificationId) => {
     try {
-      await fetch(
-        `http://localhost:8081/api/notifications/${notificationId}`,
-        { method: 'DELETE' }
-      );
-      fetchNotifications();
+      await apiClient.delete(`/notifications/${notificationId}`);
+      await fetchNotifications();
+      onNotificationsChange?.();
     } catch (error) {
       console.error('Error deleting notification:', error);
     }
@@ -80,108 +71,95 @@ function NotificationPanel({ userId, isOpen, onClose }) {
       case 'BOOKING_APPROVED':
       case 'BOOKING_REJECTED':
         return <CheckCircle className="w-5 h-5 text-blue-500" />;
-      case 'TICKET_UPDATE':
+      case 'TICKET_RESOLVED':
       case 'TICKET_STATUS_CHANGED':
+      case 'COMMENT_ADDED':
         return <AlertCircle className="w-5 h-5 text-orange-500" />;
       default:
         return <Bell className="w-5 h-5 text-gray-500" />;
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div
-      className={`fixed right-0 top-16 h-full w-96 bg-white shadow-lg transform transition-transform duration-300 z-40 ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}
-    >
-      <div className="h-full flex flex-col">
-        {/* Header */}
-        <div className="bg-gray-50 border-b border-gray-200 p-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Notifications {unreadCount > 0 && `(${unreadCount})`}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-6 h-6" />
-          </button>
+    <div className="absolute right-0 top-full mt-2 w-96 bg-white border border-gray-200 rounded-3xl shadow-2xl z-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Notifications</h2>
+          <p className="text-xs text-gray-500">{unreadCount} unread</p>
         </div>
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
-        {/* Action Buttons */}
-        <div className="border-b border-gray-200 p-3 flex gap-2">
-          <button
-            onClick={handleMarkAllAsRead}
-            className="flex-1 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 rounded px-3 py-2 transition"
-          >
-            Mark All Read
-          </button>
-          <button
-            onClick={fetchNotifications}
-            className="flex-1 text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 rounded px-3 py-2 transition"
-          >
-            Refresh
-          </button>
-        </div>
+      <div className="p-3 border-b border-gray-200 flex gap-2">
+        <button
+          onClick={handleMarkAllAsRead}
+          className="flex-1 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+        >
+          Mark all read
+        </button>
+        <button
+          onClick={fetchNotifications}
+          className="flex-1 rounded-xl bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+        >
+          Refresh
+        </button>
+      </div>
 
-        {/* Notifications List */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 text-center text-gray-500">
-              <p>Loading notifications...</p>
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="p-4 text-center text-gray-500">
-              <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>No notifications yet</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer ${
-                    !notification.read ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800 text-sm">
-                        {notification.title}
-                      </h3>
-                      <p className="text-gray-600 text-sm mt-1">
-                        {notification.message}
-                      </p>
-                      <div className="flex gap-2 mt-3">
-                        {!notification.read && (
-                          <button
-                            onClick={() =>
-                              handleMarkAsRead(notification.id)
-                            }
-                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            Mark Read
-                          </button>
-                        )}
+      <div className="max-h-96 overflow-y-auto">
+        {loading ? (
+          <div className="p-5 text-center text-gray-500">Loading notifications...</div>
+        ) : notifications.length === 0 ? (
+          <div className="p-5 text-center text-gray-500">
+            <Bell className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+            <p className="text-sm font-medium text-gray-700">No notifications yet</p>
+            <p className="text-xs text-gray-500">Check back later for updates.</p>
+          </div>
+        ) : (
+          <div className="space-y-2 p-2">
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`rounded-2xl border p-3 transition ${
+                  notification.read ? 'border-gray-100 bg-white' : 'border-blue-200 bg-blue-50'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-1">{getNotificationIcon(notification.type)}</div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">{notification.title}</p>
+                    <p className="mt-1 text-xs text-gray-600">{notification.message}</p>
+                    <div className="mt-3 flex gap-2 text-[11px] font-medium">
+                      {!notification.read && (
                         <button
-                          onClick={() =>
-                            handleDeleteNotification(notification.id)
-                          }
-                          className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                          onClick={() => handleMarkAsRead(notification.id)}
+                          className="text-blue-600 hover:text-blue-800"
                         >
-                          Delete
+                          Mark read
                         </button>
-                      </div>
+                      )}
+                      <button
+                        onClick={() => handleDeleteNotification(notification.id)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-gray-200 px-4 py-3 text-center">
+        <a href="/notifications" className="text-sm font-semibold text-blue-600 hover:underline">
+          View all notifications
+        </a>
       </div>
     </div>
   );

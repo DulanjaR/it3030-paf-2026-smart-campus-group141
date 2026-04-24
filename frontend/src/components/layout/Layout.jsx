@@ -1,14 +1,18 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Menu, LogOut, Bell, Settings } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Menu, LogOut, Settings } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import apiClient from '../../services/apiClient';
+import NotificationBell from '../NotificationBell';
+import NotificationPanel from '../NotificationPanel';
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const panelRef = useRef(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -18,6 +22,19 @@ export default function Layout({ children }) {
       return () => clearInterval(interval);
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (panelRef.current && !panelRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    if (notificationsOpen) {
+      window.addEventListener('mousedown', handleClickOutside);
+      return () => window.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [notificationsOpen]);
 
   const fetchUnreadCount = async () => {
     try {
@@ -91,19 +108,17 @@ export default function Layout({ children }) {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-4">
-              {/* Notifications Bell */}
-              <a
-                href="/notifications"
-                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Bell className="text-gray-700" size={24} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-600 text-white text-xs font-bold">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </a>
+            <div className="flex items-center gap-4 relative" ref={panelRef}>
+              <NotificationBell
+                unreadCount={unreadCount}
+                onClick={() => setNotificationsOpen((open) => !open)}
+              />
+              <NotificationPanel
+                userId={user?.id}
+                isOpen={notificationsOpen}
+                onClose={() => setNotificationsOpen(false)}
+                onNotificationsChange={fetchUnreadCount}
+              />
 
               {/* Logout Button */}
               <button
