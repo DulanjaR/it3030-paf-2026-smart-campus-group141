@@ -48,7 +48,7 @@ public class RoleManagementService {
                 user,
                 "Role Updated",
                 "Your role has been changed from " + oldRole + " to " + request.getNewRole(),
-                com.smartcampus.api.entity.NotificationType.ROLE_CHANGE
+            com.smartcampus.api.entity.NotificationType.GENERAL_ALERT
         );
         
         return convertToUserResponse(updated);
@@ -90,7 +90,7 @@ public class RoleManagementService {
                 user,
                 "Account " + (active ? "Activated" : "Deactivated"),
                 "Your account has been " + status,
-                com.smartcampus.api.entity.NotificationType.SYSTEM
+            com.smartcampus.api.entity.NotificationType.GENERAL_ALERT
         );
         
         return convertToUserResponse(updated);

@@ -21,16 +21,27 @@ public class CurrentUserService {
     private static final String GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 
     private final UserService userService;
+    private final JwtTokenService jwtTokenService;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public CurrentUserService(UserService userService) {
+    public CurrentUserService(UserService userService, JwtTokenService jwtTokenService) {
         this.userService = userService;
+        this.jwtTokenService = jwtTokenService;
     }
 
     public User getCurrentUser(String authorizationHeader) {
         String token = extractBearerToken(authorizationHeader);
         if (token == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please sign in before using bookings.");
+        }
+
+        if (jwtTokenService.validateToken(token)) {
+            try {
+                Long userId = jwtTokenService.getUserIdFromToken(token);
+                return userService.findById(userId);
+            } catch (RuntimeException ex) {
+                throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid session token. Please log in again.");
+            }
         }
 
         if (token.startsWith("local-token-")) {

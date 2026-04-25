@@ -7,7 +7,7 @@ spring:
       hibernate:
         format_sql: true
   datasource:
-    url: jdbc:postgresql://localhost:5432/smartcampus
+    url: jdbc:postgresql://ep-purple-truth-anxmcype.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: postgres
+    username: neondb_owner
+    password: npg_Fuo3PdzVJ1Ms

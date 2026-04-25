@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Calendar, AlertCircle, Package, Bell } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 import apiClient from '../services/apiClient';
 
 export default function DashboardPage() {
+  const { user } = useAuthStore();
   const [stats, setStats] = useState({
     totalResources: 0,
     activeBookings: 0,
@@ -12,7 +14,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchResources();
+    fetchActiveBookings();
     fetchOpenTickets();
+    fetchNotifications();
   }, []);
 
   const fetchResources = async () => {
@@ -39,6 +43,32 @@ export default function DashboardPage() {
       }));
     } catch (error) {
       console.error('Error fetching open tickets:', error);
+    }
+  };
+
+  const fetchActiveBookings = async () => {
+    try {
+      const res = await apiClient.get('/bookings');
+      setStats((prev) => ({
+        ...prev,
+        activeBookings: Array.isArray(res.data) ? res.data.length : 0,
+      }));
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    if (!user?.id) return;
+
+    try {
+      const res = await apiClient.get(`/notifications/${user.id}/count`);
+      setStats((prev) => ({
+        ...prev,
+        recentNotifications: res.data?.unreadCount ?? 0,
+      }));
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
     }
   };
 

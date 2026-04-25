@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../store/authStore';
 import { authAPI } from '../services/member4API';
+import apiClient from '../services/apiClient';
 
 /**
  * Member 4 - LoginPage Component
@@ -13,6 +14,8 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -52,6 +55,24 @@ export default function LoginPage() {
     navigate('/dashboard');
   };
 
+  const handlePasswordLogin = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await apiClient.post('/users/login', { email, password });
+      setToken(response.data.token);
+      setUser(response.data.user);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      console.error('Password login error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-2xl">
@@ -79,19 +100,37 @@ export default function LoginPage() {
               />
             </div>
           ) : (
-            <>
-              <button
-                onClick={handleMockLogin}
-                disabled={loading}
-                className="w-full rounded-lg bg-green-600 px-4 py-3 text-white font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Logging in...' : 'Login (Development Mode)'}
-              </button>
-              <p className="text-xs text-center text-yellow-600 bg-yellow-50 p-2 rounded">
-                ℹ️ Google OAuth not configured. Set VITE_GOOGLE_CLIENT_ID in frontend/.env.local.
-              </p>
-            </>
+            <p className="text-xs text-center text-yellow-600 bg-yellow-50 p-2 rounded">
+              ℹ️ Google OAuth not configured. Set VITE_GOOGLE_CLIENT_ID in frontend/.env.local to enable Google sign-in.
+            </p>
           )}
+
+          <form onSubmit={handlePasswordLogin} className="space-y-3 rounded-lg border border-gray-200 p-4">
+            <p className="text-sm font-semibold text-gray-800">Email sign-in</p>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email address"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+              required
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Signing in...' : 'Sign in with email'}
+            </button>
+          </form>
         </div>
 
         <div className="mt-8 pt-8 border-t border-gray-200">

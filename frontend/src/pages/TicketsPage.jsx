@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, FileText, Plus, Filter, Clock, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import apiClient from '../services/apiClient';
 
 const TicketsPage = () => {
   const { user } = useAuthStore();
@@ -19,27 +20,33 @@ const TicketsPage = () => {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      let url = `http://localhost:8081/api/tickets?page=${page}&size=10`;
+      let endpoint = '/tickets';
+      const params = { page, size: 10 };
       
       if (filter === 'my') {
         if (!user?.id) {
           setTickets([]);
+          setLoading(false);
           return;
         }
-        url = `http://localhost:8081/api/tickets/my-tickets?userId=${user?.id}&page=${page}&size=10`;
+        endpoint = '/tickets/my-tickets';
+        params.userId = user.id;
       } else if (filter === 'open') {
-        url = `http://localhost:8081/api/tickets/filter/status?status=OPEN&page=${page}&size=10`;
+        endpoint = '/tickets/filter/status';
+        params.status = 'OPEN';
       } else if (filter === 'in-progress') {
-        url = `http://localhost:8081/api/tickets/filter/status?status=IN_PROGRESS&page=${page}&size=10`;
+        endpoint = '/tickets/filter/status';
+        params.status = 'IN_PROGRESS';
       } else if (filter === 'resolved') {
-        url = `http://localhost:8081/api/tickets/filter/status?status=RESOLVED&page=${page}&size=10`;
+        endpoint = '/tickets/filter/status';
+        params.status = 'RESOLVED';
       } else if (filter === 'urgent') {
-        url = `http://localhost:8081/api/tickets/filter/priority?priority=CRITICAL&page=${page}&size=10`;
+        endpoint = '/tickets/filter/priority';
+        params.priority = 'CRITICAL';
       }
 
-      const response = await fetch(url);
-      const data = await response.json();
-      setTickets(data.content || []);
+      const response = await apiClient.get(endpoint, { params });
+      setTickets(response.data?.content || []);
     } catch (error) {
       console.error('Failed to fetch tickets:', error);
     } finally {
@@ -204,22 +211,14 @@ const CreateTicketModal = ({ onClose, onSuccess, userId }) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:8081/api/tickets?userId=${userId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      await apiClient.post('/tickets', formData, {
+        params: { userId },
       });
 
-      const payload = await response.json().catch(() => ({}));
-
-      if (response.ok) {
-        alert('Ticket created successfully!');
-        onSuccess();
-      } else {
-        alert(payload?.error || 'Failed to create ticket');
-      }
+      alert('Ticket created successfully!');
+      onSuccess();
     } catch (error) {
-      alert('Failed to create ticket');
+      alert(error.response?.data?.error || 'Failed to create ticket');
       console.error(error);
     }
   };
@@ -326,12 +325,12 @@ const TicketDetailModal = ({ ticket, onClose, onUpdate, userId }) => {
   const fetchTicketDetails = async () => {
     try {
       const [commentsRes, attachmentsRes] = await Promise.all([
-        fetch(`http://localhost:8081/api/tickets/${ticket.id}/comments?page=0&size=10`),
-        fetch(`http://localhost:8081/api/tickets/${ticket.id}/attachments?page=0&size=10`),
+        apiClient.get(`/tickets/${ticket.id}/comments`, { params: { page: 0, size: 10 } }),
+        apiClient.get(`/tickets/${ticket.id}/attachments`, { params: { page: 0, size: 10 } }),
       ]);
 
-      setComments((await commentsRes.json()).content || []);
-      setAttachments((await attachmentsRes.json()).content || []);
+      setComments(commentsRes.data?.content || []);
+      setAttachments(attachmentsRes.data?.content || []);
     } catch (error) {
       console.error('Failed to fetch details:', error);
     } finally {
@@ -343,16 +342,12 @@ const TicketDetailModal = ({ ticket, onClose, onUpdate, userId }) => {
     if (!newComment.trim()) return;
 
     try {
-      const response = await fetch(`http://localhost:8081/api/tickets/${ticket.id}/comments?userId=${userId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newComment }),
+      await apiClient.post(`/tickets/${ticket.id}/comments`, { content: newComment }, {
+        params: { userId },
       });
 
-      if (response.ok) {
-        setNewComment('');
-        fetchTicketDetails();
-      }
+      setNewComment('');
+      fetchTicketDetails();
     } catch (error) {
       console.error('Failed to add comment:', error);
     }
@@ -360,16 +355,9 @@ const TicketDetailModal = ({ ticket, onClose, onUpdate, userId }) => {
 
   const updateStatus = async (status) => {
     try {
-      const response = await fetch(`http://localhost:8081/api/tickets/${ticket.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-
-      if (response.ok) {
-        setNewStatus(status);
-        onUpdate();
-      }
+      await apiClient.patch(`/tickets/${ticket.id}/status`, { status });
+      setNewStatus(status);
+      onUpdate();
     } catch (error) {
       console.error('Failed to update status:', error);
     }
@@ -379,16 +367,9 @@ const TicketDetailModal = ({ ticket, onClose, onUpdate, userId }) => {
     if (!assignedTo.trim()) return;
 
     try {
-      const response = await fetch(`http://localhost:8081/api/tickets/${ticket.id}/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ technicianEmail: assignedTo }),
-      });
-
-      if (response.ok) {
-        alert('Ticket assigned successfully!');
-        onUpdate();
-      }
+      await apiClient.post(`/tickets/${ticket.id}/assign`, { technicianEmail: assignedTo });
+      alert('Ticket assigned successfully!');
+      onUpdate();
     } catch (error) {
       console.error('Failed to assign ticket:', error);
     }
@@ -399,17 +380,12 @@ const TicketDetailModal = ({ ticket, onClose, onUpdate, userId }) => {
     formData.append('file', file);
 
     try {
-      const response = await fetch(`http://localhost:8081/api/tickets/${ticket.id}/attachments`, {
-        method: 'POST',
-        body: formData,
+      await apiClient.post(`/tickets/${ticket.id}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      if (response.ok) {
-        fetchTicketDetails();
-      } else {
-        alert('Failed to upload file');
-      }
+      fetchTicketDetails();
     } catch (error) {
+      alert('Failed to upload file');
       console.error('Upload error:', error);
     }
   };

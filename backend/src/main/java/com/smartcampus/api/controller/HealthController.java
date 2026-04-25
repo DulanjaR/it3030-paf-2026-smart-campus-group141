@@ -15,7 +15,7 @@ import java.util.Map;
  * Accessible without authentication for monitoring purposes.
  */
 @RestController
-@RequestMapping("/public")
+@RequestMapping("/api/public")
 public class HealthController {
 
     @GetMapping("/health")

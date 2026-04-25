@@ -12,12 +12,12 @@ import EditResourcePage from './pages/EditResourcePage';
 import CataloguePage from './pages/CataloguePage';
 import ResourceDetailsPage from './pages/ResourceDetailsPage';
 import NotificationsPage from './pages/NotificationsPage';
-import RoleManagementPage from './pages/RoleManagementPage';
 import { useAuthStore } from './store/authStore';
 import './App.css';
 
 // Google OAuth is optional for development
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+console.log('GOOGLE_CLIENT_ID:', GOOGLE_CLIENT_ID);
 const USE_GOOGLE_AUTH =
   GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'your-google-client-id-here';
 
@@ -114,17 +114,6 @@ function AppRoutes() {
             <ProtectedRoute>
               <Layout>
                 <EditResourcePage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/roles"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <RoleManagementPage />
               </Layout>
             </ProtectedRoute>
           }

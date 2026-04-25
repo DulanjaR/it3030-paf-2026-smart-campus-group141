@@ -2,6 +2,7 @@ package com.smartcampus.api.controller;
 
 import com.smartcampus.api.entity.User;
 import com.smartcampus.api.entity.UserRole;
+import com.smartcampus.api.service.JwtTokenService;
 import com.smartcampus.api.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,11 +13,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 @AllArgsConstructor
 public class UserController {
     
     private final UserService userService;
+    private final JwtTokenService jwtTokenService;
     
     /**
      * POST /api/users/register
@@ -112,7 +114,7 @@ public class UserController {
         userMap.put("profilePictureUrl", user.getProfilePictureUrl());
         
         response.put("user", userMap);
-        response.put("token", "local-token-" + user.getId());
+        response.put("token", jwtTokenService.generateToken(user));
         return response;
     }
     

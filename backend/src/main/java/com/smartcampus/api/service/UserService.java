@@ -98,7 +98,7 @@ public class UserService {
                     .lastName(lastName)
                     .googleId(googleId)
                     .profilePictureUrl(profilePictureUrl)
-                    .role(UserRole.USER) // Default role
+                    .role(UserRole.STUDENT) // Default role
                     .active(true)
                     .build();
                 return userRepository.save(newUser);

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import javax.crypto.SecretKey;
 
 @Service
 public class JwtTokenService {
@@ -44,7 +45,10 @@ public class JwtTokenService {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(token);
+            Jwts.parser()
+                    .verifyWith((SecretKey) signingKey)
+                    .build()
+                    .parseSignedClaims(token);
             return true;
         } catch (Exception ex) {
             return false;
@@ -52,11 +56,11 @@ public class JwtTokenService {
     }
 
     public Long getUserIdFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(signingKey)
+        Claims claims = Jwts.parser()
+                .verifyWith((SecretKey) signingKey)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
         return Long.parseLong(claims.getSubject());
     }
 }

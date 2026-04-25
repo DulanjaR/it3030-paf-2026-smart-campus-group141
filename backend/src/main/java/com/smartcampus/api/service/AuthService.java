@@ -67,7 +67,7 @@ public class AuthService {
                             .firstName(firstName != null ? firstName : "User")
                             .lastName(lastName != null ? lastName : "")
                             .profilePictureUrl(pictureUrl)
-                            .role(UserRole.USER)
+                            .role(UserRole.STUDENT)
                             .active(true)
                             .build();
                     return userRepository.save(newUser);

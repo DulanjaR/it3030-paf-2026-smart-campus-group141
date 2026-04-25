@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/tickets")
+@RequestMapping("/api/tickets")
 @RequiredArgsConstructor
 public class TicketController {
     

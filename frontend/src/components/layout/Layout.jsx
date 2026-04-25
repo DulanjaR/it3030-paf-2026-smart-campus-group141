@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Menu, Settings } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import apiClient from '../../services/apiClient';
 import NotificationBell from '../NotificationBell';
@@ -58,9 +58,6 @@ export default function Layout({ children }) {
     { label: 'Bookings', href: '/bookings' },
     { label: 'Tickets', href: '/tickets' },
     { label: 'Notifications', href: '/notifications' },
-    ...(user?.role === 'ADMIN' ? [
-      { label: 'Admin', href: '/admin/roles', icon: Settings },
-    ] : []),
   ];
 
   return (
