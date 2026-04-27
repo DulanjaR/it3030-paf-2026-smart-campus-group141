@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, Trash2, Search, Filter } from 'lucide-react';
+import { Pencil, Trash2, Search, Filter, RotateCcw } from 'lucide-react';
 import apiClient from '../services/apiClient';
 
 export default function ResourcesPage() {
   const [resources, setResources] = useState([]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [minCapacity, setMinCapacity] = useState('');
 
   useEffect(() => {
@@ -33,6 +34,17 @@ export default function ResourcesPage() {
     }
   };
 
+  const resetFilters = () => {
+    setSearch('');
+    setTypeFilter('');
+    setStatusFilter('');
+    setMinCapacity('');
+  };
+
+  const totalResources = resources.length;
+  const activeCount = resources.filter((r) => r.available).length;
+  const outOfServiceCount = resources.filter((r) => !r.available).length;
+
   const filteredResources = resources.filter((r) => {
     const matchesSearch =
       r.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -40,14 +52,20 @@ export default function ResourcesPage() {
       (r.description || '').toLowerCase().includes(search.toLowerCase());
 
     const matchesType = typeFilter === '' || r.type === typeFilter;
-    const matchesCapacity = minCapacity === '' || r.capacity >= Number(minCapacity);
 
-    return matchesSearch && matchesType && matchesCapacity;
+    const matchesStatus =
+      statusFilter === '' ||
+      (statusFilter === 'ACTIVE' && r.available) ||
+      (statusFilter === 'OUT_OF_SERVICE' && !r.available);
+
+    const matchesCapacity =
+      minCapacity === '' || r.capacity >= Number(minCapacity);
+
+    return matchesSearch && matchesType && matchesStatus && matchesCapacity;
   });
 
   return (
     <div className="space-y-6">
-      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -58,7 +76,6 @@ export default function ResourcesPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Catalogue Button */}
           <Link
             to="/catalogue"
             className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition"
@@ -66,7 +83,6 @@ export default function ResourcesPage() {
             View Catalogue
           </Link>
 
-          {/* Add Resource Button */}
           <Link
             to="/resources/add"
             className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow hover:bg-blue-700 transition"
@@ -76,14 +92,42 @@ export default function ResourcesPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-500" />
-          <h2 className="text-sm font-semibold text-gray-700">Filters</h2>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-500">Total Resources</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{totalResources}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm">
+          <p className="text-sm font-medium text-green-700">Active Resources</p>
+          <p className="mt-2 text-3xl font-bold text-green-700">{activeCount}</p>
+        </div>
+
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
+          <p className="text-sm font-medium text-red-700">Out of Service</p>
+          <p className="mt-2 text-3xl font-bold text-red-700">{outOfServiceCount}</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-500" />
+            <h2 className="text-sm font-semibold text-gray-700">Filters</h2>
+          </div>
+
+          <button
+            onClick={resetFilters}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
@@ -108,6 +152,16 @@ export default function ResourcesPage() {
             <option value="AUDITORIUM">Auditorium</option>
             <option value="SPORTS_FACILITY">Sports Facility</option>
             <option value="SEMINAR_HALL">Seminar Hall</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full rounded-xl border border-gray-300 p-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
+          >
+            <option value="">All Status</option>
+            <option value="ACTIVE">Active</option>
+            <option value="OUT_OF_SERVICE">Out of Service</option>
           </select>
 
           <input

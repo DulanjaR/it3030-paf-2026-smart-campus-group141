@@ -51,7 +51,7 @@ export default function LoginPage() {
       const { user, token } = response.data;
       setToken(token);
       setUser(user);
-      navigate('/dashboard');
+      navigate('/welcome');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -71,7 +71,7 @@ export default function LoginPage() {
         const data = await authService.login(tokenResponse.access_token);
         setToken(data.token);
         setUser(data.user);
-        navigate('/dashboard');
+        navigate('/welcome');
       } catch (requestError) {
         setError(
           requestError.response?.data?.message

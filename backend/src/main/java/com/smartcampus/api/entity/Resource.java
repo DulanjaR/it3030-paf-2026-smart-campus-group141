@@ -1,4 +1,5 @@
 package com.smartcampus.api.entity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -63,6 +64,7 @@ public class Resource {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
     
+    @JsonIgnore
     @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Booking> bookings;
     

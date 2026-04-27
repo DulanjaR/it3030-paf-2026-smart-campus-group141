@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+
 import Layout from './components/layout/Layout';
+import WelcomePage from './components/WelcomePage';
+
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import DashboardPage from './pages/DashboardPage';
@@ -13,10 +16,12 @@ import CataloguePage from './pages/CataloguePage';
 import ResourceDetailsPage from './pages/ResourceDetailsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import RoleManagementPage from './pages/RoleManagementPage';
+import UserBookingsPage from './pages/UserBookingsPage';
+import UserTicketsPage from './pages/UserTicketsPage';
+
 import { useAuthStore } from './store/authStore';
 import './App.css';
 
-// Google OAuth is optional for development
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const USE_GOOGLE_AUTH =
   GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'your-google-client-id-here';
@@ -34,12 +39,21 @@ function AppRoutes() {
       <Routes>
         <Route
           path="/login"
-          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+          element={isAuthenticated ? <Navigate to="/welcome" replace /> : <LoginPage />}
         />
 
         <Route
           path="/signup"
-          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignUpPage />}
+          element={isAuthenticated ? <Navigate to="/welcome" replace /> : <SignUpPage />}
+        />
+
+        <Route
+          path="/welcome"
+          element={
+            <ProtectedRoute>
+              <WelcomePage />
+            </ProtectedRoute>
+          }
         />
 
         <Route
@@ -65,6 +79,15 @@ function AppRoutes() {
         />
 
         <Route
+          path="/my-tickets"
+          element={
+            <ProtectedRoute>
+              <UserTicketsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/notifications"
           element={
             <ProtectedRoute>
@@ -76,22 +99,31 @@ function AppRoutes() {
         />
 
         <Route
-          path="/resources"
+          path="/bookings"
           element={
             <ProtectedRoute>
               <Layout>
-                <ResourcesPage />
+                <BookingsPage />
               </Layout>
             </ProtectedRoute>
           }
         />
 
         <Route
-          path="/bookings"
+          path="/my-bookings"
+          element={
+            <ProtectedRoute>
+                <UserBookingsPage />
+            </ProtectedRoute>
+          }
+/>
+
+        <Route
+          path="/resources"
           element={
             <ProtectedRoute>
               <Layout>
-                <BookingsPage />
+                <ResourcesPage />
               </Layout>
             </ProtectedRoute>
           }
@@ -130,10 +162,25 @@ function AppRoutes() {
           }
         />
 
-        <Route path="/catalogue" element={<CataloguePage />} />
-        <Route path="/catalogue/:id" element={<ResourceDetailsPage />} />
+        <Route
+          path="/catalogue"
+          element={
+            <ProtectedRoute>
+              <CataloguePage />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/catalogue/:id"
+          element={
+            <ProtectedRoute>
+              <ResourceDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/" element={<Navigate to="/welcome" replace />} />
       </Routes>
     </Router>
   );
