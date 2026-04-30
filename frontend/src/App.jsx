@@ -18,6 +18,7 @@ import NotificationsPage from './pages/NotificationsPage';
 import RoleManagementPage from './pages/RoleManagementPage';
 import UserBookingsPage from './pages/UserBookingsPage';
 import UserTicketsPage from './pages/UserTicketsPage';
+import UserNotificationsPage from './pages/UserNotificationsPage';
 
 import { useAuthStore } from './store/authStore';
 import './App.css';
@@ -176,6 +177,15 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <ResourceDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/my-notifications"
+          element={
+            <ProtectedRoute>
+              <UserNotificationsPage />
             </ProtectedRoute>
           }
         />

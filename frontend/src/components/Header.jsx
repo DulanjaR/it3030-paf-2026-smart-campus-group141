@@ -40,7 +40,7 @@ export default function Header() {
             <Ticket size={18} /> Tickets
           </NavLink>
 
-          <NavLink to="/notifications" className={linkClass}>
+          <NavLink to="/my-notifications" className={linkClass}>
             <Bell size={18} /> Notifications
           </NavLink>
 
